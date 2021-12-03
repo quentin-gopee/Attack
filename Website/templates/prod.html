@@ -1,0 +1,370 @@
+<!doctype html>
+
+<head>
+    <link rel="shortcut icon" href="static/attachment/treeIcon.png">
+    <link rel="stylesheet" href="static/prod.css">
+</head>
+
+<body>
+    <div class="interface">
+        <header class="elementLeft">
+            <a class="logo" href="http://localhost:5000">Musique Normale</a>
+            <p class="sublogo">Digital Sound, Musical Practice</p>
+        </header>
+
+        <div class="subinterface">
+            <input class="button" type="file" name="audio_files" id="audio_files" onchange="uploadFile()"
+                webkitdirectory multiple>
+
+            <input class="button" type="button" value="Compute map" id="compute" onclick="computeMap()">
+            <a id="text_compute"></a>
+
+            <input class="button" type="button" value="Recenter" id="recenter" onclick="recenter()">
+            <div class="containerRadio">
+                <div class="RadioButtonContainer">
+                    <input class="radiobutton" type="radio" id="hover" name="mode" value="hover" checked>
+                    <label class="radiobuttonlabel" for="contactChoice1">Hover</label>
+                </div>
+                <div class="RadioButtonContainer">
+                    <input class="radiobutton" type="radio" id="click" name="mode" value="click">
+                    <label class="radiobuttonlabel" for="contactChoice2">Click</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <audio id="audio_player"></audio>
+
+    <canvas id="myCanvas" class="myCanvas">
+    </canvas>
+
+    <script>
+
+        var color = 'rgb(239,239,239)';
+        var c = document.getElementById('myCanvas');
+        var ctx = c.getContext('2d');
+        c.width = window.innerWidth;
+        c.height = window.innerHeight;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, c.width, c.height);
+        var map = {};
+        var nbSounds = 0;
+        var positions = [];
+        var scale = 1;
+        var centerX = 0.5;
+        var centerY = 0.5;
+        const sleep = 150;
+        const sleep_same = 500;
+        let last = Date.now();
+        let last_same = Date.now();
+        var last_played = null;
+        var selected = [];
+
+        window.addEventListener('resize', e => {
+            c.width = window.innerWidth;
+            c.height = window.innerHeight;
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, c.width, c.height);
+            recenter();
+            createMap();
+        });
+
+        c.addEventListener('wheel', e => {
+            var previous_scale = scale;
+
+            if (e.deltaY < 0) {
+                scale = scale * 1.1;
+                centerX = centerX - (1 - 1 / 1.1) * (0.5 - e.offsetX / c.width);
+                centerY = centerY - (1 - 1 / 1.1) * (0.5 - e.offsetY / c.height);
+            }
+            else {
+                scale = scale / 1.1;
+            }
+
+            console.log(centerX, centerY)
+
+            upDatePositions(scale, centerX, centerY);
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, c.width, c.height);
+            createMap();
+        });
+
+        c.addEventListener('click', e => {
+            const radioMode = document.querySelectorAll('input[name="mode"]');
+            let mode;
+            for (const rb of radioMode) {
+                if (rb.checked) {
+                    mode = rb.value;
+                    break;
+                }
+            }
+
+            if (e.shiftKey) {
+                xs = e.offsetX;
+                ys = e.offsetY;
+                var dist_min = 100;
+                var i_min = null;
+                for (let i = 0; i < nbSounds; i++) {
+                    var x = positions[i][0];
+                    var y = positions[i][1];
+                    var dx = xs - x;
+                    var dy = ys - y;
+                    var dist = dx * dx + dy * dy;
+                    if (dist < dist_min) {
+                        dist_min = dist;
+                        i_min = i;
+                    }
+                }
+
+                if (dist_min < 25) {
+                    if (selected.includes(i_min)) {
+                        index_current = selected.indexOf(i_min);
+                        selected.splice(index_current, 1);
+                    }
+                    else {
+                        selected.push(i_min);
+                    }
+                    ctx.fillStyle = color;
+                    ctx.fillRect(0, 0, c.width, c.height);
+                    createMap();
+                }
+            }
+
+            if (mode == 'click') {
+                xs = e.offsetX;
+                ys = e.offsetY;
+                var dist_min = 100;
+                var i_min = null;
+
+                for (let i = 0; i < nbSounds; i++) {
+                    var x = positions[i][0];
+                    var y = positions[i][1];
+                    var dx = xs - x;
+                    var dy = ys - y;
+                    var dist = dx * dx + dy * dy;
+                    if (dist < dist_min) {
+                        dist_min = dist;
+                        i_min = i;
+                    }
+                }
+
+                if (dist_min < 25) {
+                    if (last_played != null) {
+                        resetPoint(last_played);
+                    }
+                    drawCurrentPoint(i_min);
+                    index = map[i_min].file;
+                    var files = audio_files.files;
+                    var file = URL.createObjectURL(files[index]);
+                    audio_player.src = file;
+                    audio_player.play();
+                    last_played = i_min;
+                }
+            }
+        });
+
+        c.addEventListener('mousemove', e => {
+            const radioMode = document.querySelectorAll('input[name="mode"]');
+            let mode;
+            for (const rb of radioMode) {
+                if (rb.checked) {
+                    mode = rb.value;
+                    break;
+                }
+            }
+
+            let now = Date.now()
+            if (now - last > sleep) {
+                if (mode == 'hover') {
+                    xs = e.offsetX;
+                    ys = e.offsetY;
+                    var dist_min = 100;
+                    var i_min = null;
+
+                    for (let i = 0; i < nbSounds; i++) {
+                        var x = positions[i][0];
+                        var y = positions[i][1];
+                        var dx = xs - x;
+                        var dy = ys - y;
+                        var dist = dx * dx + dy * dy;
+                        if (dist < dist_min) {
+                            dist_min = dist;
+                            i_min = i;
+                        }
+                    }
+
+                    if (dist_min < 25) {
+                        if (last_played == i_min) {
+                            if (now - last_same > sleep_same) {
+                                index = map[i_min].file;
+                                var files = audio_files.files;
+                                var file = URL.createObjectURL(files[index]);
+                                audio_player.src = file;
+                                audio_player.play();
+                                last = Date.now();
+                                last_same = Date.now();
+                            }
+                        }
+                        else {
+                            if (last_played != null) {
+                                resetPoint(last_played);
+                            }
+                            drawCurrentPoint(i_min);
+                            index = map[i_min].file;
+                            var files = audio_files.files;
+                            var file = URL.createObjectURL(files[index]);
+                            audio_player.src = file;
+                            audio_player.play();
+                            last = Date.now();
+                            last_same = Date.now();
+                            last_played = i_min;
+                        }
+                    }
+                }
+            }
+        });
+
+        function recenter() {
+            scale = 1;
+            centerX = 0.5;
+            centerY = 0.5;
+            console.log(centerX, centerY)
+
+            upDatePositions(scale, centerX, centerY);
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, c.width, c.height);
+            createMap();
+
+        }
+
+        function upDatePositions(scale, centerX, centerY) {
+            positions = [];
+            for (let i = 0; i < nbSounds; i++) {
+                offsetX = c.width * (0.5 - scale * (0.7 * centerX + 0.15));
+                offsetY = c.height * (0.5 - scale * (0.7 * centerY + 0.15));
+                var x = (0.7 * map[i].point[0] + 0.15) * c.width * scale + offsetX;
+                var y = (0.7 * map[i].point[1] + 0.15) * c.height * scale + offsetY;
+                positions.push([x, y]);
+            }
+        }
+
+        function addPoint(i) {
+            var r = Math.floor(map[i].color[0] / 1.25);
+            var g = Math.floor(map[i].color[1] / 1.25);
+            var b = Math.floor(map[i].color[2] / 1.25);
+            let colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
+            var x = positions[i][0];
+            var y = positions[i][1];
+            ctx.beginPath();
+            ctx.fillStyle = colorPoint;
+            if (selected.includes(i)) {
+                ctx.strokeStyle = 'rgb(0,0,0)';
+            }
+            else {
+                ctx.strokeStyle = color;
+            }
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function resetPoint(i) {
+            var r = Math.floor(map[i].color[0] / 1.25);
+            var g = Math.floor(map[i].color[1] / 1.25);
+            var b = Math.floor(map[i].color[2] / 1.25);
+            let colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
+            var x = positions[i][0];
+            var y = positions[i][1];
+
+            ctx.beginPath();
+
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = colorPoint;
+            if (selected.includes(i)) {
+                ctx.strokeStyle = 'rgb(0,0,0)';
+            }
+            else {
+                ctx.strokeStyle = color;
+            }
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function drawCurrentPoint(i) {
+            var r = Math.floor(map[i].color[0] / 1.25) + 40;
+            var g = Math.floor(map[i].color[1] / 1.25) + 40;
+            var b = Math.floor(map[i].color[2] / 1.25) + 40;
+            let color = 'rgb(' + r + ',' + g + ',' + b + ')';
+            var x = positions[i][0];
+            var y = positions[i][1];
+            ctx.beginPath();
+            ctx.fillStyle = color;
+            if (selected.includes(i)) {
+                ctx.strokeStyle = 'rgb(0,0,0)';
+            }
+            else {
+                ctx.strokeStyle = color;
+            }
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function createMap() {
+            for (let i = 0; i < nbSounds; i++) {
+                addPoint(i)
+            }
+        }
+
+        function computeMap() {
+            resetMap();
+            var totalfiles = document.getElementById('audio_files').files.length;
+            const text = document.getElementById("text_compute");
+
+            if (totalfiles > 0) {
+                text.innerHTML = "Computing...";
+
+                var formData = new FormData();
+
+                // Read selected files
+                for (var index = 0; index < totalfiles; index++) {
+                    formData.append("files[]", document.getElementById('audio_files').files[index]);
+                }
+
+                fetch('http://localhost:5000/api', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(sound_map => {
+                        map = JSON.parse(sound_map['sound_map']);
+                        for (sound in map) {
+                            nbSounds++
+                        };
+                        recenter();
+                        upDatePositions(scale, centerX, centerY);
+                        createMap();
+                        text.innerHTML = "";
+                    })
+            }
+
+            else {
+                text.innerHTML = "No file uploaded !";
+            }
+        }
+
+        function resetMap() {
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, c.width, c.height);
+            nbSounds = 0;
+        }
+
+    </script>
+</body>
+
+</html>
