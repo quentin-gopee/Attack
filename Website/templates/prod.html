@@ -58,6 +58,9 @@
         let last_same = Date.now();
         var last_played = null;
         var selected = [];
+        var pointRadius = 5;
+        var grid = null;
+        initiateGrid();
 
         window.addEventListener('resize', e => {
             c.width = window.innerWidth;
@@ -75,14 +78,14 @@
                 scale = scale * 1.1;
                 centerX = centerX - (1 - 1 / 1.1) * (0.5 - e.offsetX / c.width);
                 centerY = centerY - (1 - 1 / 1.1) * (0.5 - e.offsetY / c.height);
-            }
-            else {
+            } else {
                 scale = scale / 1.1;
             }
 
             console.log(centerX, centerY)
 
             upDatePositions(scale, centerX, centerY);
+            upDateGrid();
             ctx.fillStyle = color;
             ctx.fillRect(0, 0, c.width, c.height);
             createMap();
@@ -103,6 +106,7 @@
                 ys = e.offsetY;
                 var dist_min = 100;
                 var i_min = null;
+
                 for (let i = 0; i < nbSounds; i++) {
                     var x = positions[i][0];
                     var y = positions[i][1];
@@ -115,12 +119,11 @@
                     }
                 }
 
-                if (dist_min < 25) {
+                if (dist_min < pointRadius * pointRadius) {
                     if (selected.includes(i_min)) {
                         index_current = selected.indexOf(i_min);
                         selected.splice(index_current, 1);
-                    }
-                    else {
+                    } else {
                         selected.push(i_min);
                     }
                     ctx.fillStyle = color;
@@ -135,7 +138,12 @@
                 var dist_min = 100;
                 var i_min = null;
 
-                for (let i = 0; i < nbSounds; i++) {
+                xgrid = Math.floor(xs / (2 * pointRadius));
+                ygrid = Math.floor(ys / (2 * pointRadius));
+                gridSounds = grid[xgrid][ygrid];
+                console.log(gridSounds);
+
+                gridSounds.forEach(i => {
                     var x = positions[i][0];
                     var y = positions[i][1];
                     var dx = xs - x;
@@ -145,9 +153,9 @@
                         dist_min = dist;
                         i_min = i;
                     }
-                }
+                });
 
-                if (dist_min < 25) {
+                if (dist_min < pointRadius * pointRadius) {
                     if (last_played != null) {
                         resetPoint(last_played);
                     }
@@ -192,7 +200,7 @@
                         }
                     }
 
-                    if (dist_min < 25) {
+                    if (dist_min < pointRadius * pointRadius) {
                         if (last_played == i_min) {
                             if (now - last_same > sleep_same) {
                                 index = map[i_min].file;
@@ -203,8 +211,7 @@
                                 last = Date.now();
                                 last_same = Date.now();
                             }
-                        }
-                        else {
+                        } else {
                             if (last_played != null) {
                                 resetPoint(last_played);
                             }
@@ -227,9 +234,9 @@
             scale = 1;
             centerX = 0.5;
             centerY = 0.5;
-            console.log(centerX, centerY)
 
             upDatePositions(scale, centerX, centerY);
+            upDateGrid();
             ctx.fillStyle = color;
             ctx.fillRect(0, 0, c.width, c.height);
             createMap();
@@ -258,11 +265,10 @@
             ctx.fillStyle = colorPoint;
             if (selected.includes(i)) {
                 ctx.strokeStyle = 'rgb(0,0,0)';
-            }
-            else {
+            } else {
                 ctx.strokeStyle = color;
             }
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
         }
@@ -279,18 +285,17 @@
 
             ctx.fillStyle = color;
             ctx.strokeStyle = color;
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
 
             ctx.fillStyle = colorPoint;
             if (selected.includes(i)) {
                 ctx.strokeStyle = 'rgb(0,0,0)';
-            }
-            else {
+            } else {
                 ctx.strokeStyle = color;
             }
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
         }
@@ -306,13 +311,98 @@
             ctx.fillStyle = color;
             if (selected.includes(i)) {
                 ctx.strokeStyle = 'rgb(0,0,0)';
-            }
-            else {
+            } else {
                 ctx.strokeStyle = color;
             }
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
+        }
+
+        function initiateGrid() {
+            var gridWidth = Math.floor(c.width / (2 * pointRadius));
+            var gridHeight = Math.floor(c.height / (2 * pointRadius));
+            grid = new Array(gridWidth);
+            for (let i = 0; i < gridWidth; i++) {
+                grid[i] = new Array(gridHeight);
+                for (let j = 0; j < gridHeight; j++) {
+                    grid[i][j] = [];
+                }
+            }
+        }
+
+        function upDateGrid() {
+            var gridWidth = Math.floor(c.width / (2 * pointRadius));
+            var gridHeight = Math.floor(c.height / (2 * pointRadius));
+            grid = new Array(gridWidth);
+            for (let i = 0; i < gridWidth; i++) {
+                grid[i] = new Array(gridHeight);
+                for (let j = 0; j < gridHeight; j++) {
+                    grid[i][j] = [];
+                }
+            }
+
+            for (let i = 0; i < nbSounds; i++) {
+                var xgrid = Math.floor(positions[i][0] / (2 * pointRadius));
+                var ygrid = Math.floor(positions[i][1] / (2 * pointRadius));
+                if (xgrid >= 0 && ygrid >= 0 && xgrid < gridWidth && ygrid < gridHeight) {
+                    if (xgrid >= 1 && ygrid >= 1 && xgrid < gridWidth - 1 && ygrid < gridHeight - 1) {
+                        for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                            for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                grid[x][y].push(i);
+                            }
+                        }
+                    } else if (xgrid == 0 && ygrid >= 1 && ygrid < gridHeight - 1) {
+                        for (let x = xgrid; x <= xgrid + 1; x++) {
+                            for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid == gridWidth - 1 && ygrid >= 1 && ygrid < gridHeight - 1) {
+                        for (let x = xgrid - 1; x <= xgrid; x++) {
+                            for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == 0) {
+                        for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                            for (let y = ygrid; y <= ygrid + 1; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == gridHeight - 1) {
+                        for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                            for (let y = ygrid - 1; y <= ygrid; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid == 0 && ygrid == 0) {
+                        for (let x = xgrid; x <= xgrid + 1; x++) {
+                            for (let y = ygrid; y <= ygrid + 1; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid == gridWidth - 1 && ygrid == 0) {
+                        for (let x = xgrid - 1; x <= xgrid; x++) {
+                            for (let y = ygrid; y <= ygrid + 1; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid == 0 && ygrid == gridHeight - 1) {
+                        for (let x = xgrid; x <= xgrid + 1; x++) {
+                            for (let y = ygrid - 1; y <= ygrid; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    } else if (xgrid == gridWidth - 1 && ygrid == gridHeight - 1) {
+                        for (let x = xgrid - 1; x <= xgrid; x++) {
+                            for (let y = ygrid - 1; y <= ygrid; y++) {
+                                grid[x][y].push(i)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         function createMap() {
@@ -347,13 +437,10 @@
                             nbSounds++
                         };
                         recenter();
-                        upDatePositions(scale, centerX, centerY);
                         createMap();
                         text.innerHTML = "";
                     })
-            }
-
-            else {
+            } else {
                 text.innerHTML = "No file uploaded !";
             }
         }
