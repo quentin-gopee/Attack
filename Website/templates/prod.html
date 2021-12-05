@@ -1,8 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 
 <head>
     <link rel="shortcut icon" href="static/attachment/treeIcon.png">
     <link rel="stylesheet" href="static/prod.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 </head>
 
 <body>
@@ -13,8 +14,7 @@
         </header>
 
         <div class="subinterface">
-            <input class="button" type="file" name="audio_files" id="audio_files" onchange="uploadFile()"
-                webkitdirectory multiple>
+            <input class="button" type="file" name="audio_files" id="audio_files" webkitdirectory multiple>
 
             <input class="button" type="button" value="Compute map" id="compute" onclick="computeMap()">
             <a id="text_compute"></a>
@@ -60,6 +60,9 @@
         var selected = [];
         var pointRadius = 5;
         var grid = null;
+        var down = false;
+        var previous_xs = null;
+        var previous_ys = null;
         initiateGrid();
 
         window.addEventListener('resize', e => {
@@ -84,8 +87,6 @@
                 centerY = centerY - (1 - 1.1) * (0.5 - e.offsetY / c.height) / previous_scale;
             }
 
-            console.log(centerX, centerY)
-
             upDatePositions(scale, centerX, centerY);
             upDateGrid();
             ctx.fillStyle = color;
@@ -93,7 +94,15 @@
             createMap();
         });
 
-        c.addEventListener('click', e => {
+        c.addEventListener('mouseup', e => {
+            down = false;
+        });
+
+        c.addEventListener('mousedown', e => {
+            down = true;
+            previous_xs = e.offsetX;
+            previous_ys = e.offsetY;
+
             const radioMode = document.querySelectorAll('input[name="mode"]');
             let mode;
             for (const rb of radioMode) {
@@ -143,7 +152,6 @@
                 xgrid = Math.floor(xs / (2 * pointRadius));
                 ygrid = Math.floor(ys / (2 * pointRadius));
                 gridSounds = grid[xgrid][ygrid];
-                console.log(gridSounds);
 
                 gridSounds.forEach(i => {
                     var x = positions[i][0];
@@ -173,38 +181,62 @@
         });
 
         c.addEventListener('mousemove', e => {
-            const radioMode = document.querySelectorAll('input[name="mode"]');
-            let mode;
-            for (const rb of radioMode) {
-                if (rb.checked) {
-                    mode = rb.value;
-                    break;
-                }
-            }
-
-            let now = Date.now()
-            if (now - last > sleep) {
-                if (mode == 'hover') {
-                    xs = e.offsetX;
-                    ys = e.offsetY;
-                    var dist_min = 100;
-                    var i_min = null;
-
-                    for (let i = 0; i < nbSounds; i++) {
-                        var x = positions[i][0];
-                        var y = positions[i][1];
-                        var dx = xs - x;
-                        var dy = ys - y;
-                        var dist = dx * dx + dy * dy;
-                        if (dist < dist_min) {
-                            dist_min = dist;
-                            i_min = i;
-                        }
+            if (down) {
+                centerX = centerX - (e.offsetX - previous_xs) / (scale * c.width);
+                centerY = centerY - (e.offsetY - previous_ys) / (scale * c.height);
+                previous_xs = e.offsetX;
+                previous_ys = e.offsetY;
+                upDatePositions(scale, centerX, centerY);
+                upDateGrid();
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, c.width, c.height);
+                createMap();
+            } else {
+                const radioMode = document.querySelectorAll('input[name="mode"]');
+                let mode;
+                for (const rb of radioMode) {
+                    if (rb.checked) {
+                        mode = rb.value;
+                        break;
                     }
+                }
 
-                    if (dist_min < pointRadius * pointRadius) {
-                        if (last_played == i_min) {
-                            if (now - last_same > sleep_same) {
+                let now = Date.now()
+                if (now - last > sleep) {
+                    if (mode == 'hover') {
+                        xs = e.offsetX;
+                        ys = e.offsetY;
+                        var dist_min = 100;
+                        var i_min = null;
+
+                        for (let i = 0; i < nbSounds; i++) {
+                            var x = positions[i][0];
+                            var y = positions[i][1];
+                            var dx = xs - x;
+                            var dy = ys - y;
+                            var dist = dx * dx + dy * dy;
+                            if (dist < dist_min) {
+                                dist_min = dist;
+                                i_min = i;
+                            }
+                        }
+
+                        if (dist_min < pointRadius * pointRadius) {
+                            if (last_played == i_min) {
+                                if (now - last_same > sleep_same) {
+                                    index = map[i_min].file;
+                                    var files = audio_files.files;
+                                    var file = URL.createObjectURL(files[index]);
+                                    audio_player.src = file;
+                                    audio_player.play();
+                                    last = Date.now();
+                                    last_same = Date.now();
+                                }
+                            } else {
+                                if (last_played != null) {
+                                    resetPoint(last_played);
+                                }
+                                drawCurrentPoint(i_min);
                                 index = map[i_min].file;
                                 var files = audio_files.files;
                                 var file = URL.createObjectURL(files[index]);
@@ -212,20 +244,8 @@
                                 audio_player.play();
                                 last = Date.now();
                                 last_same = Date.now();
+                                last_played = i_min;
                             }
-                        } else {
-                            if (last_played != null) {
-                                resetPoint(last_played);
-                            }
-                            drawCurrentPoint(i_min);
-                            index = map[i_min].file;
-                            var files = audio_files.files;
-                            var file = URL.createObjectURL(files[index]);
-                            audio_player.src = file;
-                            audio_player.play();
-                            last = Date.now();
-                            last_same = Date.now();
-                            last_played = i_min;
                         }
                     }
                 }
