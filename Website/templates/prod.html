@@ -20,16 +20,30 @@
             <a id="text_compute"></a>
 
             <input class="button" type="button" value="Recenter" id="recenter" onclick="recenter()">
+
             <div class="containerRadio">
+                <p><b>Triggering mode</b></p>
                 <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="hover" name="mode" value="hover" checked>
-                    <label class="radiobuttonlabel" for="contactChoice1">Hover</label>
+                    <input class="radiobutton" type="radio" id="hover" name="trigger_mode" value="hover" checked>
+                    <label class="radiobuttonlabel" for="hover">Hover</label>
                 </div>
                 <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="click" name="mode" value="click">
-                    <label class="radiobuttonlabel" for="contactChoice2">Click</label>
+                    <input class="radiobutton" type="radio" id="click" name="trigger_mode" value="click">
+                    <label class="radiobuttonlabel" for="click">Click</label>
+                </div>
+
+                <p><b>Playing mode</b></p>
+                <div class="RadioButtonContainer">
+                    <input class="radiobutton" type="radio" id="single" name="playing_mode" value="single" checked>
+                    <label class="radiobuttonlabel" for="single">Single</label>
+                </div>
+                <div class="RadioButtonContainer">
+                    <input class="radiobutton" type="radio" id="multiple" name="playing_mode" value="multiple">
+                    <label class="radiobuttonlabel" for="multiple">Multiple</label>
                 </div>
             </div>
+
+            <input class="button" type="button" value="Stop all sounds" id="stop_all_sounds" onclick="stopAllSounds()">
         </div>
     </div>
     <audio id="audio_player"></audio>
@@ -39,45 +53,60 @@
 
     <script>
 
-        var color = 'rgb(239,239,239)';
+        // Init
+        var background_color = 'rgb(239,239,239)'; // background color
         var c = document.getElementById('myCanvas');
         var ctx = c.getContext('2d');
         c.width = window.innerWidth;
         c.height = window.innerHeight;
-        ctx.fillStyle = color;
+        ctx.fillStyle = background_color;
         ctx.fillRect(0, 0, c.width, c.height);
-        var map = {};
-        var nbSounds = 0;
-        var positions = [];
-        var scale = 1;
-        var centerX = 0.5;
-        var centerY = 0.5;
-        const sleep = 150;
-        const sleep_same = 500;
-        let last = Date.now();
-        let last_same = Date.now();
-        var last_played = null;
-        var selected = [];
-        var pointRadius = 5;
-        var grid = null;
-        var down = false;
-        var previous_xs = null;
-        var previous_ys = null;
-        initiateGrid();
+        var map = {}; // store the map
+        var nbSounds = 0; // total number of sounds in the map
+        var positions = []; // position of the sounds on the canvas
+        var scale = 1; // change scale to zoom in or out (event wheel)
+        var centerX = 0.5; // x coordonate of the center (in the original map referential)
+        var centerY = 0.5; // y coordonate of the center (in the original map referential)
+        const sleep = 150; // minimum time between 2 sounds triggering
+        const sleep_same = 500; // minimum time between 2 triggering of the same sound
+        let last = Date.now(); // last time a sound was played
+        let last_same = Date.now(); // last time the sound we want to replay has been played
+        var last_played = null; // last sound that has been played
+        var selected = []; // list of selected sounds
+        var pointRadius = 5; // radius of the points
+        var grid = null; // store the grid
+        initiateGrid(); // initiate the grid
+        var down = false; // store the state of the mouse button
+        var previous_xs = null; // store the last position of the mouse
+        var previous_ys = null; // store the last position of the mouse
+        var playing_sounds = [audio_player]; // store all audios
 
+        // Stop all sounds
+        function stopAllSounds() {
+            for (i = 0; i < playing_sounds.length; i++) {
+                if (!playing_sounds[i].pause()) {
+                    playing_sounds[i].pause();
+                }
+            }
+            playing_sounds = [audio_player];
+        }
+
+        // Resize the canvas to fit the size of the window
         window.addEventListener('resize', e => {
             c.width = window.innerWidth;
             c.height = window.innerHeight;
-            ctx.fillStyle = color;
+            ctx.fillStyle = background_color;
             ctx.fillRect(0, 0, c.width, c.height);
             recenter();
             createMap();
         });
 
+        // Prevent zooming in the page with the trackpad
         document.addEventListener("touchstart", function (e) {
             e.preventDefault();
         }, { passive: false });
 
+        // Zoom in/out with the wheel
         c.addEventListener('wheel', e => {
             e.preventDefault();
             var previous_scale = scale;
@@ -94,29 +123,43 @@
 
             upDatePositions(scale, centerX, centerY);
             upDateGrid();
-            ctx.fillStyle = color;
+            ctx.fillStyle = background_color;
             ctx.fillRect(0, 0, c.width, c.height);
             createMap();
         });
 
+        // Listen to mouse up event
         c.addEventListener('mouseup', e => {
             down = false;
         });
 
+        // Listen to mouse down event 
         c.addEventListener('mousedown', e => {
             down = true;
             previous_xs = e.offsetX;
             previous_ys = e.offsetY;
 
-            const radioMode = document.querySelectorAll('input[name="mode"]');
-            let mode;
-            for (const rb of radioMode) {
+            // Get triggering mode
+            const radioTriggerMode = document.querySelectorAll('input[name="trigger_mode"]');
+            let trigger_mode;
+            for (const rb of radioTriggerMode) {
                 if (rb.checked) {
-                    mode = rb.value;
+                    trigger_mode = rb.value;
                     break;
                 }
             }
 
+            // Get playing mode
+            const radioPlayingMode = document.querySelectorAll('input[name="playing_mode"]');
+            let playing_mode;
+            for (const rb of radioPlayingMode) {
+                if (rb.checked) {
+                    playing_mode = rb.value;
+                    break;
+                }
+            }
+
+            // If shiftKey is pressed, select the sound by changing the color of its stroke
             if (e.shiftKey) {
                 xs = e.offsetX;
                 ys = e.offsetY;
@@ -142,13 +185,14 @@
                     } else {
                         selected.push(i_min);
                     }
-                    ctx.fillStyle = color;
+                    ctx.fillStyle = background_color;
                     ctx.fillRect(0, 0, c.width, c.height);
                     createMap();
                 }
             }
 
-            if (mode == 'click') {
+            // Trigger the closest sound if it is close enough
+            if (trigger_mode == 'click') {
                 xs = e.offsetX;
                 ys = e.offsetY;
                 var dist_min = 100;
@@ -178,14 +222,23 @@
                     index = map[i_min].file;
                     var files = audio_files.files;
                     var file = URL.createObjectURL(files[index]);
-                    audio_player.src = file;
-                    audio_player.play();
+                    if (playing_mode == "single") {
+                        audio_player.src = file;
+                        audio_player.play();
+                    } else {
+                        var snd = new Audio(file);
+                        snd.play();
+                        playing_sounds.push(snd);
+                    }
                     last_played = i_min;
                 }
             }
         });
 
+        // Listen to mouse move event
         c.addEventListener('mousemove', e => {
+
+            // If the mouse button i down, move the map
             if (down) {
                 centerX = centerX - (e.offsetX - previous_xs) / (scale * c.width);
                 centerY = centerY - (e.offsetY - previous_ys) / (scale * c.height);
@@ -193,22 +246,34 @@
                 previous_ys = e.offsetY;
                 upDatePositions(scale, centerX, centerY);
                 upDateGrid();
-                ctx.fillStyle = color;
+                ctx.fillStyle = background_color;
                 ctx.fillRect(0, 0, c.width, c.height);
                 createMap();
-            } else {
-                const radioMode = document.querySelectorAll('input[name="mode"]');
-                let mode;
-                for (const rb of radioMode) {
+            }
+
+            // Trigger the closest sound if it is close enough
+            else {
+                const radioTriggerMode = document.querySelectorAll('input[name="trigger_mode"]');
+                let trigger_mode;
+                for (const rb of radioTriggerMode) {
                     if (rb.checked) {
-                        mode = rb.value;
+                        trigger_mode = rb.value;
+                        break;
+                    }
+                }
+
+                const radioPlayingMode = document.querySelectorAll('input[name="playing_mode"]');
+                let playing_mode;
+                for (const rb of radioPlayingMode) {
+                    if (rb.checked) {
+                        playing_mode = rb.value;
                         break;
                     }
                 }
 
                 let now = Date.now()
                 if (now - last > sleep) {
-                    if (mode == 'hover') {
+                    if (trigger_mode == 'hover') {
                         xs = e.offsetX;
                         ys = e.offsetY;
                         var dist_min = 100;
@@ -245,8 +310,14 @@
                                 index = map[i_min].file;
                                 var files = audio_files.files;
                                 var file = URL.createObjectURL(files[index]);
-                                audio_player.src = file;
-                                audio_player.play();
+                                if (playing_mode == "single") {
+                                    audio_player.src = file;
+                                    audio_player.play();
+                                } else {
+                                    var snd = new Audio(file);
+                                    snd.play();
+                                    playing_sounds.push(snd);
+                                }
                                 last = Date.now();
                                 last_same = Date.now();
                                 last_played = i_min;
@@ -257,6 +328,7 @@
             }
         });
 
+        // Recenter the map
         function recenter() {
             scale = 1;
             centerX = 0.5;
@@ -264,12 +336,13 @@
 
             upDatePositions(scale, centerX, centerY);
             upDateGrid();
-            ctx.fillStyle = color;
+            ctx.fillStyle = background_color;
             ctx.fillRect(0, 0, c.width, c.height);
             createMap();
 
         }
 
+        // Update the position of the points on the map according to the scale and center
         function upDatePositions(scale, centerX, centerY) {
             positions = [];
             for (let i = 0; i < nbSounds; i++) {
@@ -281,6 +354,7 @@
             }
         }
 
+        // Add a point on the canvas
         function addPoint(i) {
             var r = Math.floor(map[i].color[0] / 1.25);
             var g = Math.floor(map[i].color[1] / 1.25);
@@ -293,13 +367,14 @@
             if (selected.includes(i)) {
                 ctx.strokeStyle = 'rgb(0,0,0)';
             } else {
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = background_color;
             }
             ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
         }
 
+        // Reset the point after playing
         function resetPoint(i) {
             var r = Math.floor(map[i].color[0] / 1.25);
             var g = Math.floor(map[i].color[1] / 1.25);
@@ -310,8 +385,8 @@
 
             ctx.beginPath();
 
-            ctx.fillStyle = color;
-            ctx.strokeStyle = color;
+            ctx.fillStyle = background_color;
+            ctx.strokeStyle = background_color;
             ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
@@ -320,13 +395,14 @@
             if (selected.includes(i)) {
                 ctx.strokeStyle = 'rgb(0,0,0)';
             } else {
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = background_color;
             }
             ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
         }
 
+        // Highlight current point
         function drawCurrentPoint(i) {
             var r = Math.floor(map[i].color[0] / 1.25) + 40;
             var g = Math.floor(map[i].color[1] / 1.25) + 40;
@@ -339,13 +415,14 @@
             if (selected.includes(i)) {
                 ctx.strokeStyle = 'rgb(0,0,0)';
             } else {
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = background_color;
             }
             ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.stroke();
         }
 
+        // Initiate the grid
         function initiateGrid() {
             var gridWidth = Math.floor(c.width / (2 * pointRadius));
             var gridHeight = Math.floor(c.height / (2 * pointRadius));
@@ -358,6 +435,7 @@
             }
         }
 
+        // Update the grid
         function upDateGrid() {
             var gridWidth = Math.floor(c.width / (2 * pointRadius));
             var gridHeight = Math.floor(c.height / (2 * pointRadius));
@@ -432,12 +510,14 @@
             }
         }
 
+        // Draw the map on the canvas
         function createMap() {
             for (let i = 0; i < nbSounds; i++) {
                 addPoint(i)
             }
         }
 
+        // Call the API to compute the map
         function computeMap() {
             resetMap();
             var totalfiles = document.getElementById('audio_files').files.length;
@@ -472,8 +552,9 @@
             }
         }
 
+        // Reset the map
         function resetMap() {
-            ctx.fillStyle = color;
+            ctx.fillStyle = background_color;
             ctx.fillRect(0, 0, c.width, c.height);
             nbSounds = 0;
         }
