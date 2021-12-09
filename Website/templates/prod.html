@@ -24,26 +24,32 @@
             <div class="containerRadio">
                 <p><b>Triggering mode</b></p>
                 <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="hover" name="trigger_mode" value="hover" checked>
+                    <input class="radiobutton" type="radio" id="hover" name="trigger_mode" value="hover"
+                        onclick="hoverMode()" checked>
                     <label class="radiobuttonlabel" for="hover">Hover</label>
                 </div>
                 <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="click" name="trigger_mode" value="click">
+                    <input class="radiobutton" type="radio" id="click" name="trigger_mode" value="click"
+                        onclick="clickMode()">
                     <label class="radiobuttonlabel" for="click">Click</label>
                 </div>
 
                 <p><b>Playing mode</b></p>
                 <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="single" name="playing_mode" value="single" checked>
+                    <input class="radiobutton" type="radio" id="single" name="playing_mode" value="single"
+                        onclick="singleMode()" checked>
                     <label class="radiobuttonlabel" for="single">Single</label>
                 </div>
                 <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="multiple" name="playing_mode" value="multiple">
+                    <input class="radiobutton" type="radio" id="multiple" name="playing_mode" value="multiple"
+                        onclick="multipleMode()">
                     <label class="radiobuttonlabel" for="multiple">Multiple</label>
                 </div>
             </div>
 
             <input class="button" type="button" value="Stop all sounds" id="stop_all_sounds" onclick="stopAllSounds()">
+
+            <p id="sound_name"></p>
         </div>
     </div>
     <audio id="audio_player"></audio>
@@ -80,6 +86,11 @@
         var previous_xs = null; // store the last position of the mouse
         var previous_ys = null; // store the last position of the mouse
         var playing_sounds = [audio_player]; // store all audios
+        let trigger_mode = 'hover'; // store triggering mode
+        let playing_mode = 'single'; // store playing mode
+        var next_key_sound = null; // next sound to be linked to a key
+        var right_click = false; // store if a right click happened
+        var sound_keys = {}; // store the sounds associated to the keys
 
         // Stop all sounds
         function stopAllSounds() {
@@ -133,31 +144,80 @@
             down = false;
         });
 
+        // Change to hover mode
+        function hoverMode() {
+            trigger_mode = 'hover';
+        }
+
+        // Change to click mode
+        function clickMode() {
+            trigger_mode = 'click';
+        }
+
+        // Change to single mode
+        function singleMode() {
+            playing_mode = 'single';
+        }
+
+        // Change to multiple mode
+        function multipleMode() {
+            playing_mode = 'multiple';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (right_click) {
+                right_click = false;
+                sound_keys[e.code] = next_key_sound;
+            }
+
+            if (e.code in sound_keys) {
+                index = map[sound_keys[e.code]].file;
+                var files = audio_files.files;
+                var file = URL.createObjectURL(files[index]);
+                var snd = new Audio(file);
+                snd.play();
+                playing_sounds.push(snd);
+                if (last_played != null) {
+                    resetPoint(last_played);
+                }
+                drawCurrentPoint(sound_keys[e.code]);
+                last_played = sound_keys[e.code];
+                var text = document.getElementById("sound_name");
+                text.innerHTML = files[index].name;
+            }
+        });
+
+        c.addEventListener('contextmenu', e => {
+            e.preventDefault();
+
+            xs = e.offsetX;
+            ys = e.offsetY;
+            var dist_min = 100;
+            var i_min = null;
+
+            for (let i = 0; i < nbSounds; i++) {
+                var x = positions[i][0];
+                var y = positions[i][1];
+                var dx = xs - x;
+                var dy = ys - y;
+                var dist = dx * dx + dy * dy;
+                if (dist < dist_min) {
+                    dist_min = dist;
+                    i_min = i;
+                }
+            }
+
+            if (dist_min < pointRadius * pointRadius) {
+                right_click = true;
+                next_key_sound = i_min;
+            }
+        });
+
         // Listen to mouse down event 
         c.addEventListener('mousedown', e => {
             down = true;
             previous_xs = e.offsetX;
             previous_ys = e.offsetY;
-
-            // Get triggering mode
-            const radioTriggerMode = document.querySelectorAll('input[name="trigger_mode"]');
-            let trigger_mode;
-            for (const rb of radioTriggerMode) {
-                if (rb.checked) {
-                    trigger_mode = rb.value;
-                    break;
-                }
-            }
-
-            // Get playing mode
-            const radioPlayingMode = document.querySelectorAll('input[name="playing_mode"]');
-            let playing_mode;
-            for (const rb of radioPlayingMode) {
-                if (rb.checked) {
-                    playing_mode = rb.value;
-                    break;
-                }
-            }
 
             // If shiftKey is pressed, select the sound by changing the color of its stroke
             if (e.shiftKey) {
@@ -231,6 +291,9 @@
                         playing_sounds.push(snd);
                     }
                     last_played = i_min;
+                    var text = document.getElementById("sound_name");
+                    text.innerHTML = files[index].name;
+
                 }
             }
         });
@@ -253,24 +316,6 @@
 
             // Trigger the closest sound if it is close enough
             else {
-                const radioTriggerMode = document.querySelectorAll('input[name="trigger_mode"]');
-                let trigger_mode;
-                for (const rb of radioTriggerMode) {
-                    if (rb.checked) {
-                        trigger_mode = rb.value;
-                        break;
-                    }
-                }
-
-                const radioPlayingMode = document.querySelectorAll('input[name="playing_mode"]');
-                let playing_mode;
-                for (const rb of radioPlayingMode) {
-                    if (rb.checked) {
-                        playing_mode = rb.value;
-                        break;
-                    }
-                }
-
                 let now = Date.now()
                 if (now - last > sleep) {
                     if (trigger_mode == 'hover') {
@@ -321,6 +366,8 @@
                                 last = Date.now();
                                 last_same = Date.now();
                                 last_played = i_min;
+                                var text = document.getElementById("sound_name");
+                                text.innerHTML = files[index].name;
                             }
                         }
                     }
