@@ -54,62 +54,123 @@
     </div>
     <audio id="audio_player"></audio>
 
-    <canvas id="myCanvas" class="myCanvas">
+    <canvas id="mapCanvas" class="mapCanvas">
+    </canvas>
+
+    <canvas id="visuCanvas" class="visuCanvas">
     </canvas>
 
     <script>
 
         // Init
         var background_color = 'rgb(239,239,239)'; // background color
-        var c = document.getElementById('myCanvas');
+        var c = document.getElementById('mapCanvas');
         var ctx = c.getContext('2d');
         c.width = window.innerWidth;
         c.height = window.innerHeight;
-        ctx.fillStyle = background_color;
-        ctx.fillRect(0, 0, c.width, c.height);
+
+        var cv = document.getElementById('visuCanvas');
+        var ctxv = cv.getContext('2d');
+        cv.width = window.innerWidth;
+        cv.height = 100;
+
         var map = {}; // store the map
         var nbSounds = 0; // total number of sounds in the map
         var positions = []; // position of the sounds on the canvas
         var scale = 1; // change scale to zoom in or out (event wheel)
         var centerX = 0.5; // x coordonate of the center (in the original map referential)
         var centerY = 0.5; // y coordonate of the center (in the original map referential)
+        var selected = []; // list of selected sounds
+        var pointRadius = 5; // radius of the points
+        var grid = null; // store the grid
+        initiateGrid(); // initiate the grid
+
         const sleep = 150; // minimum time between 2 sounds triggering
         const sleep_same = 500; // minimum time between 2 triggering of the same sound
         let last = Date.now(); // last time a sound was played
         let last_same = Date.now(); // last time the sound we want to replay has been played
         var last_played = null; // last sound that has been played
-        var selected = []; // list of selected sounds
-        var pointRadius = 5; // radius of the points
-        var grid = null; // store the grid
-        initiateGrid(); // initiate the grid
+
         var down = false; // store the state of the mouse button
         var previous_xs = null; // store the last position of the mouse
         var previous_ys = null; // store the last position of the mouse
-        var playing_sounds = [audio_player]; // store all audios
+
         let trigger_mode = 'hover'; // store triggering mode
         let playing_mode = 'single'; // store playing mode
         var next_key_sound = null; // next sound to be linked to a key
         var right_click = false; // store if a right click happened
+
         var sound_keys = {}; // store the sounds associated to the keys
+        var trackNb = 500; // total number of tracks
+        var tracks = [audio_player]; // store all audios
+        var next_tracks = []; // queue to store next track to be used
+
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        var bufferLength = analyser.frequencyBinCount;
+        var dataArray = new Uint8Array(bufferLength);
+
+        createTracks(); // create all the tracks
+        draw();
+
+        // Draw visualization
+        function draw() {
+            drawVisual = requestAnimationFrame(draw);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            ctxv.clearRect(0, 0, cv.width, cv.height);
+
+            var barWidth = (cv.width / bufferLength) * 1.4;
+            var barHeight;
+            var x = 0;
+
+            for (var i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 2;
+
+                ctxv.fillStyle = 'rgb(' + 0.8 * (barHeight + 100) + ',' + 0.8 * (barHeight + 100) + ',' + 0.8 * (barHeight + 100) + ')';
+                ctxv.fillRect(x, cv.height - barHeight / 2, barWidth, barHeight);
+
+                x += barWidth + 1;
+            }
+        }
+
+        // Create all the tracks
+        function createTracks() {
+            const audio = audioCtx.createMediaElementSource(audio_player);
+            audio.connect(analyser).connect(audioCtx.destination);
+            for (i = 1; i < trackNb; i++) {
+                let track = new Audio();
+                const audio = audioCtx.createMediaElementSource(track);
+                audio.connect(analyser).connect(audioCtx.destination);
+                tracks.push(track);
+                next_tracks.push(i);
+            }
+        }
 
         // Stop all sounds
         function stopAllSounds() {
-            for (i = 0; i < playing_sounds.length; i++) {
-                if (!playing_sounds[i].pause()) {
-                    playing_sounds[i].pause();
+            for (i = 0; i < tracks.length; i++) {
+                if (!tracks[i].pause()) {
+                    tracks[i].pause();
                 }
             }
-            playing_sounds = [audio_player];
+            next_tracks = [];
+            for (i = 1; i < trackNb; i++) {
+                next_tracks.push(i);
+            }
         }
 
         // Resize the canvas to fit the size of the window
         window.addEventListener('resize', e => {
             c.width = window.innerWidth;
             c.height = window.innerHeight;
-            ctx.fillStyle = background_color;
-            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.clearRect(0, 0, c.width, c.height);
             recenter();
             createMap();
+            cv.width = window.innerWidth;
+            ctxv.clearRect(0, 0, cv.width, cv.height);
         });
 
         // Prevent zooming in the page with the trackpad
@@ -134,8 +195,7 @@
 
             upDatePositions(scale, centerX, centerY);
             upDateGrid();
-            ctx.fillStyle = background_color;
-            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.clearRect(0, 0, c.width, c.height);
             createMap();
         });
 
@@ -164,6 +224,21 @@
             playing_mode = 'multiple';
         }
 
+        function nextTrack() {
+            i = 0
+            while (!tracks[next_tracks[i]].pause()) {
+                i++;
+                if (i = next_tracks.length) {
+                    i = 0;
+                    tracks[next_tracks[0]].pause();
+                    break;
+                }
+            }
+            track_id = next_tracks.splice(i, 1);
+            next_tracks.push(track_id);
+            return track_id;
+        }
+
         document.addEventListener('keydown', e => {
             if (right_click) {
                 right_click = false;
@@ -174,9 +249,9 @@
                 index = map[sound_keys[e.code]].file;
                 var files = audio_files.files;
                 var file = URL.createObjectURL(files[index]);
-                var snd = new Audio(file);
-                snd.play();
-                playing_sounds.push(snd);
+                var track_id = nextTrack();
+                tracks[track_id].src = file;
+                tracks[track_id].play();
                 if (last_played != null) {
                     resetPoint(last_played);
                 }
@@ -245,8 +320,7 @@
                     } else {
                         selected.push(i_min);
                     }
-                    ctx.fillStyle = background_color;
-                    ctx.fillRect(0, 0, c.width, c.height);
+                    ctx.clearRect(0, 0, c.width, c.height);
                     createMap();
                 }
             }
@@ -286,9 +360,9 @@
                         audio_player.src = file;
                         audio_player.play();
                     } else {
-                        var snd = new Audio(file);
-                        snd.play();
-                        playing_sounds.push(snd);
+                        var track_id = nextTrack();
+                        tracks[track_id].src = file;
+                        tracks[track_id].play();
                     }
                     last_played = i_min;
                     var text = document.getElementById("sound_name");
@@ -309,8 +383,7 @@
                 previous_ys = e.offsetY;
                 upDatePositions(scale, centerX, centerY);
                 upDateGrid();
-                ctx.fillStyle = background_color;
-                ctx.fillRect(0, 0, c.width, c.height);
+                ctx.clearRect(0, 0, c.width, c.height);
                 createMap();
             }
 
@@ -342,8 +415,14 @@
                                     index = map[i_min].file;
                                     var files = audio_files.files;
                                     var file = URL.createObjectURL(files[index]);
-                                    audio_player.src = file;
-                                    audio_player.play();
+                                    if (playing_mode == "single") {
+                                        audio_player.src = file;
+                                        audio_player.play();
+                                    } else {
+                                        var track_id = nextTrack();
+                                        tracks[track_id].src = file;
+                                        tracks[track_id].play();
+                                    }
                                     last = Date.now();
                                     last_same = Date.now();
                                 }
@@ -359,9 +438,9 @@
                                     audio_player.src = file;
                                     audio_player.play();
                                 } else {
-                                    var snd = new Audio(file);
-                                    snd.play();
-                                    playing_sounds.push(snd);
+                                    var track_id = nextTrack();
+                                    tracks[track_id].src = file;
+                                    tracks[track_id].play();
                                 }
                                 last = Date.now();
                                 last_same = Date.now();
@@ -383,8 +462,7 @@
 
             upDatePositions(scale, centerX, centerY);
             upDateGrid();
-            ctx.fillStyle = background_color;
-            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.clearRect(0, 0, c.width, c.height);
             createMap();
 
         }
@@ -601,8 +679,7 @@
 
         // Reset the map
         function resetMap() {
-            ctx.fillStyle = background_color;
-            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.clearRect(0, 0, c.width, c.height);
             nbSounds = 0;
         }
 
