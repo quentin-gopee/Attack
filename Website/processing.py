@@ -18,7 +18,6 @@ def allowed_file(filename):
 
 def get_features(y, sr):
     """Crée un vecteur représentant le son y"""
-    print(len(y)-sr)
     if len(y) < sr:
         lack = sr-len(y)
         end = np.zeros(lack)
