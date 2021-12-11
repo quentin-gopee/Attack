@@ -1,6 +1,6 @@
 # Import libraries
 import numpy as np
-from librosa import power_to_db, feature, to_mono
+from librosa import power_to_db, feature, to_mono, get_duration
 from sklearn.manifold import TSNE
 from json import dumps
 from math import exp
@@ -18,7 +18,11 @@ def allowed_file(filename):
 
 def get_features(y, sr):
     """Crée un vecteur représentant le son y"""
-
+    print(len(y)-sr)
+    if len(y) < sr:
+        lack = sr-len(y)
+        end = np.zeros(lack)
+        y = np.concatenate((y, end))
     y = y[0:sr]  # analyze just first second
     S = feature.melspectrogram(y, sr=sr, n_mels=128)
     log_S = power_to_db(S, ref=np.max)
@@ -56,6 +60,9 @@ def mfcc_files(files):
                     print("error loading %s" % file.filename)
                     continue
                 feat = get_features(y, sr)
+                if np.isnan(np.sum(feat)):
+                    print("error loading %s" % file.filename)
+                    continue
                 feature_vectors.append(feat)
                 out_files.append(j)
             except:
