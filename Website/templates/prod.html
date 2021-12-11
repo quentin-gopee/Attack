@@ -101,7 +101,7 @@
         var right_click = false; // store if a right click happened
 
         var sound_keys = {}; // store the sounds associated to the keys
-        var trackNb = 500; // total number of tracks
+        var trackNb = 200; // total number of tracks
         var tracks = [audio_player]; // store all audios
         var next_tracks = []; // queue to store next track to be used
 
@@ -234,7 +234,7 @@
                     break;
                 }
             }
-            track_id = next_tracks.splice(i, 1);
+            track_id = next_tracks.splice(i, 1)[0];
             next_tracks.push(track_id);
             return track_id;
         }
