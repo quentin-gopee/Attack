@@ -113,19 +113,24 @@
         var tracks = [audio_player]; // store all audios
         var next_tracks = []; // queue to store next track to be used
 
-        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let analyser = audioCtx.createAnalyser();
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var analyser = audioCtx.createAnalyser();
+        var compressor = audioCtx.createDynamicsCompressor();
+        var gainNode = audioCtx.createGain();
         analyser.connect(audioCtx.destination);
+        compressor.connect(analyser);
+        gainNode.connect(compressor);
+        gainNode.gain.value = 0.7;
         analyser.fftSize = 512;
         var bufferLength = analyser.frequencyBinCount;
         var dataArray = new Uint8Array(bufferLength);
 
-        let clicked = false;
-        let play_record_disable = true;
-        let playing_record = false;
-        let chunks = [];
-        let dest = audioCtx.createMediaStreamDestination();
-        let mediaRecorder = new MediaRecorder(dest.stream);
+        var clicked = false;
+        var play_record_disable = true;
+        var playing_record = false;
+        var chunks = [];
+        var dest = audioCtx.createMediaStreamDestination();
+        var mediaRecorder = new MediaRecorder(dest.stream);
         analyser.connect(dest);
         const record_btn = document.getElementById("record");
         const play_record_btn = document.getElementById("play_record");
@@ -211,13 +216,13 @@
         // Create all the tracks
         function createTracks() {
             const audio = audioCtx.createMediaElementSource(audio_player);
-            audio.connect(analyser).connect(audioCtx.destination);
+            audio.connect(gainNode);
             const record = audioCtx.createMediaElementSource(record_player);
-            record.connect(analyser).connect(audioCtx.destination);
+            record.connect(gainNode);
             for (i = 1; i < trackNb; i++) {
                 let track = new Audio();
                 const audio = audioCtx.createMediaElementSource(track);
-                audio.connect(analyser);
+                audio.connect(gainNode);
                 tracks.push(track);
                 next_tracks.push(i);
             }
