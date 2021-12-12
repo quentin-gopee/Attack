@@ -319,25 +319,29 @@
         }
 
         document.addEventListener('keydown', e => {
-            if (right_click) {
-                right_click = false;
-                sound_keys[e.code] = next_key_sound;
-            }
-
-            if (e.code in sound_keys) {
-                index = map[sound_keys[e.code]].file;
-                var files = audio_files.files;
-                var file = URL.createObjectURL(files[index]);
-                var track_id = nextTrack();
-                tracks[track_id].src = file;
-                tracks[track_id].play();
-                if (last_played != null) {
-                    resetPoint(last_played);
+            if (e.shiftKey && e.code == 'KeyR') {
+                record();
+            } else {
+                if (right_click) {
+                    right_click = false;
+                    sound_keys[e.code] = next_key_sound;
                 }
-                drawCurrentPoint(sound_keys[e.code]);
-                last_played = sound_keys[e.code];
-                var text = document.getElementById("sound_name");
-                text.innerHTML = files[index].name;
+
+                if (e.code in sound_keys) {
+                    index = map[sound_keys[e.code]].file;
+                    var files = audio_files.files;
+                    var file = URL.createObjectURL(files[index]);
+                    var track_id = nextTrack();
+                    tracks[track_id].src = file;
+                    tracks[track_id].play();
+                    if (last_played != null) {
+                        resetPoint(last_played);
+                    }
+                    drawCurrentPoint(sound_keys[e.code]);
+                    last_played = sound_keys[e.code];
+                    var text = document.getElementById("sound_name");
+                    text.innerHTML = files[index].name;
+                }
             }
         });
 
