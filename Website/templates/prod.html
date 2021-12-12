@@ -191,6 +191,7 @@
             if (play_record_disable) {
                 document.getElementById('play_record').disabled = false;
                 document.getElementById('download_record').disabled = false;
+                play_record_disable = false;
             }
         };
 
@@ -321,6 +322,10 @@
         document.addEventListener('keydown', e => {
             if (e.shiftKey && e.code == 'KeyR') {
                 record();
+            } else if (e.code == 'Space') {
+                if (!play_record_disable) {
+                    playRecord();
+                }
             } else {
                 if (right_click) {
                     right_click = false;
