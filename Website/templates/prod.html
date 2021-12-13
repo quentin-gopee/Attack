@@ -323,6 +323,7 @@
             if (e.shiftKey && e.code == 'KeyR') {
                 record();
             } else if (e.code == 'Space') {
+                e.preventDefault();
                 if (!play_record_disable) {
                     playRecord();
                 }
