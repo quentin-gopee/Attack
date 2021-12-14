@@ -80,7 +80,7 @@
         var cv = document.getElementById('visuCanvas');
         var ctxv = cv.getContext('2d');
         cv.width = window.innerWidth;
-        cv.height = 100;
+        cv.height = window.innerHeight;
 
         var map = {}; // store the map
         var nbSounds = 0; // total number of sounds in the map
@@ -109,21 +109,22 @@
         var right_click = false; // store if a right click happened
 
         var sound_keys = {}; // store the sounds associated to the keys
-        var trackNb = 200; // total number of tracks
+        var trackNb = 50; // total number of tracks
         var tracks = [audio_player]; // store all audios
+        var analysers = []; // store all analysers
+        var dataArrays = [] // store all dataArrays
         var next_tracks = []; // queue to store next track to be used
+        var current_sound = []; // which sound is playing on each track
+        var active_tracks = []; // which tracks are playing
+        var radius_factors = [0.7, 1, 1.75];
+        var bufferLength;
 
         var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var analyser = audioCtx.createAnalyser();
         var compressor = audioCtx.createDynamicsCompressor();
         var gainNode = audioCtx.createGain();
-        analyser.connect(audioCtx.destination);
-        compressor.connect(analyser);
+        compressor.connect(audioCtx.destination);
         gainNode.connect(compressor);
         gainNode.gain.value = 0.7;
-        analyser.fftSize = 512;
-        var bufferLength = analyser.frequencyBinCount;
-        var dataArray = new Uint8Array(bufferLength);
 
         var clicked = false;
         var play_record_disable = true;
@@ -131,7 +132,7 @@
         var chunks = [];
         var dest = audioCtx.createMediaStreamDestination();
         var mediaRecorder = new MediaRecorder(dest.stream);
-        analyser.connect(dest);
+        compressor.connect(dest);
         const record_btn = document.getElementById("record");
         const play_record_btn = document.getElementById("play_record");
         const download_record_btn = document.getElementById("download_record");
@@ -139,25 +140,73 @@
         createTracks(); // create all the tracks
         draw();
 
+        // Create all the tracks
+        function createTracks() {
+            const audio = audioCtx.createMediaElementSource(audio_player);
+            audio.connect(gainNode);
+            var analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 32;
+            audio.connect(analyser).connect(gainNode);
+            analysers.push(analyser);
+            bufferLength = analysers[0].frequencyBinCount;
+            var dataArray = new Uint8Array(bufferLength);
+            dataArrays.push(dataArray);
+
+            audio_player.addEventListener('pause', e => {
+                var index_track = active_tracks.indexOf(0);
+                active_tracks.splice(index_track, 1);
+            });
+
+            const record = audioCtx.createMediaElementSource(record_player);
+            record.connect(gainNode);
+
+            for (i = 1; i < trackNb; i++) {
+                let track = new Audio();
+                const audio = audioCtx.createMediaElementSource(track);
+                var analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 32;
+                var dataArray = new Uint8Array(bufferLength);
+                audio.connect(analyser).connect(gainNode);
+
+                track.addEventListener('pause', e => {
+                    var index_track = active_tracks.indexOf(i);
+                    active_tracks.splice(index_track, 1);
+                });
+
+                tracks.push(track);
+                analysers.push(analyser);
+                dataArrays.push(dataArray);
+                next_tracks.push(i);
+                current_sound.push(null);
+            }
+        }
+
         // Draw visualization
         function draw() {
             drawVisual = requestAnimationFrame(draw);
-
-            analyser.getByteFrequencyData(dataArray);
-
             ctxv.clearRect(0, 0, cv.width, cv.height);
 
-            var barWidth = (cv.width / bufferLength) * 1.4;
-            var barHeight;
-            var x = 0;
+            if (nbSounds > 0) {
+                for (const i of active_tracks) {
+                    analysers[i].getByteFrequencyData(dataArrays[i]);
+                    var radius;
+                    var x = positions[current_sound[i]][0];
+                    var y = positions[current_sound[i]][1];
 
-            for (var i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
+                    var r = Math.floor(map[current_sound[i]].color[0] / 1.25);
+                    var g = Math.floor(map[current_sound[i]].color[1] / 1.25);
+                    var b = Math.floor(map[current_sound[i]].color[2] / 1.25);
+                    let colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
 
-                ctxv.fillStyle = 'rgb(' + 0.8 * (barHeight + 100) + ',' + 0.8 * (barHeight + 100) + ',' + 0.8 * (barHeight + 100) + ')';
-                ctxv.fillRect(x, cv.height - barHeight / 2, barWidth, barHeight);
-
-                x += barWidth + 1;
+                    for (var j = 0; j < bufferLength - 1; j += 5) {
+                        ctxv.beginPath();
+                        ctxv.fillStyle = colorPoint;
+                        ctxv.globalAlpha = 0.2;
+                        radius = dataArrays[i][j] / 16 * radius_factors[j / 5];
+                        ctxv.arc(x, y, radius, 0, 2 * Math.PI);
+                        ctxv.fill();
+                    }
+                }
             }
         }
 
@@ -214,25 +263,10 @@
             }
         })
 
-        // Create all the tracks
-        function createTracks() {
-            const audio = audioCtx.createMediaElementSource(audio_player);
-            audio.connect(gainNode);
-            const record = audioCtx.createMediaElementSource(record_player);
-            record.connect(gainNode);
-            for (i = 1; i < trackNb; i++) {
-                let track = new Audio();
-                const audio = audioCtx.createMediaElementSource(track);
-                audio.connect(gainNode);
-                tracks.push(track);
-                next_tracks.push(i);
-            }
-        }
-
         // Stop all sounds
         function stopAllSounds() {
             for (i = 0; i < tracks.length; i++) {
-                if (!tracks[i].pause()) {
+                if (!tracks[i].paused) {
                     tracks[i].pause();
                 }
             }
@@ -250,6 +284,7 @@
             recenter();
             createMap();
             cv.width = window.innerWidth;
+            cv.height = window.innerHeight;
             ctxv.clearRect(0, 0, cv.width, cv.height);
         });
 
@@ -259,7 +294,7 @@
         }, { passive: false });
 
         // Zoom in/out with the wheel
-        c.addEventListener('wheel', e => {
+        cv.addEventListener('wheel', e => {
             e.preventDefault();
             var previous_scale = scale;
 
@@ -280,7 +315,7 @@
         });
 
         // Listen to mouse up event
-        c.addEventListener('mouseup', e => {
+        cv.addEventListener('mouseup', e => {
             down = false;
         });
 
@@ -306,7 +341,7 @@
 
         function nextTrack() {
             i = 0
-            while (!tracks[next_tracks[i]].pause()) {
+            while (!tracks[next_tracks[i]].paused) {
                 i++;
                 if (i = next_tracks.length) {
                     i = 0;
@@ -314,8 +349,10 @@
                     break;
                 }
             }
-            track_id = next_tracks.splice(i, 1)[0];
+            var track_id = next_tracks.splice(i, 1)[0];
             next_tracks.push(track_id);
+            var index_track = active_tracks.indexOf(track_id);
+            active_tracks.splice(index_track, 1);
             return track_id;
         }
 
@@ -339,7 +376,9 @@
                     var file = URL.createObjectURL(files[index]);
                     var track_id = nextTrack();
                     tracks[track_id].src = file;
+                    current_sound[track_id] = sound_keys[e.code];
                     tracks[track_id].play();
+                    active_tracks.push(track_id);
                     if (last_played != null) {
                         resetPoint(last_played);
                     }
@@ -351,7 +390,7 @@
             }
         });
 
-        c.addEventListener('contextmenu', e => {
+        cv.addEventListener('contextmenu', e => {
             e.preventDefault();
 
             xs = e.offsetX;
@@ -378,7 +417,7 @@
         });
 
         // Listen to mouse down event 
-        c.addEventListener('mousedown', e => {
+        cv.addEventListener('mousedown', e => {
             down = true;
             previous_xs = e.offsetX;
             previous_ys = e.offsetY;
@@ -446,12 +485,20 @@
                     var files = audio_files.files;
                     var file = URL.createObjectURL(files[index]);
                     if (playing_mode == "single") {
+                        if (!audio_player.paused) {
+                            var index_track = active_tracks.indexOf(0);
+                            active_tracks.splice(index_track, 1);
+                        }
                         audio_player.src = file;
+                        current_sound[0] = i_min;
                         audio_player.play();
+                        active_tracks.push(0);
                     } else {
                         var track_id = nextTrack();
                         tracks[track_id].src = file;
+                        current_sound[track_id] = i_min;
                         tracks[track_id].play();
+                        active_tracks.push(track_id);
                     }
                     last_played = i_min;
                     var text = document.getElementById("sound_name");
@@ -462,7 +509,7 @@
         });
 
         // Listen to mouse move event
-        c.addEventListener('mousemove', e => {
+        cv.addEventListener('mousemove', e => {
 
             // If the mouse button i down, move the map
             if (down) {
@@ -505,12 +552,20 @@
                                     var files = audio_files.files;
                                     var file = URL.createObjectURL(files[index]);
                                     if (playing_mode == "single") {
+                                        if (!audio_player.paused) {
+                                            var index_track = active_tracks.indexOf(0);
+                                            active_tracks.splice(index_track, 1);
+                                        }
                                         audio_player.src = file;
+                                        current_sound[0] = i_min;
                                         audio_player.play();
+                                        active_tracks.push(0);
                                     } else {
                                         var track_id = nextTrack();
                                         tracks[track_id].src = file;
+                                        current_sound[track_id] = i_min;
                                         tracks[track_id].play();
+                                        active_tracks.push(track_id);
                                     }
                                     last = Date.now();
                                     last_same = Date.now();
@@ -524,12 +579,20 @@
                                 var files = audio_files.files;
                                 var file = URL.createObjectURL(files[index]);
                                 if (playing_mode == "single") {
+                                    if (!audio_player.paused) {
+                                        var index_track = active_tracks.indexOf(0);
+                                        active_tracks.splice(index_track, 1);
+                                    }
                                     audio_player.src = file;
+                                    current_sound[0] = i_min;
                                     audio_player.play();
+                                    active_tracks.push(0);
                                 } else {
                                     var track_id = nextTrack();
                                     tracks[track_id].src = file;
+                                    current_sound[track_id] = i_min;
                                     tracks[track_id].play();
+                                    active_tracks.push(track_id);
                                 }
                                 last = Date.now();
                                 last_same = Date.now();
@@ -755,7 +818,7 @@
                     .then(sound_map => {
                         map = JSON.parse(sound_map['sound_map']);
                         for (sound in map) {
-                            nbSounds++
+                            nbSounds++;
                         };
                         recenter();
                         createMap();
@@ -770,6 +833,7 @@
         function resetMap() {
             ctx.clearRect(0, 0, c.width, c.height);
             nbSounds = 0;
+            last_played = null;
         }
 
     </script>
