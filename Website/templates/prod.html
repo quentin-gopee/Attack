@@ -116,7 +116,8 @@
         var next_tracks = []; // queue to store next track to be used
         var current_sound = []; // which sound is playing on each track
         var active_tracks = []; // which tracks are playing
-        var radius_factors = [0.7, 1, 1.75];
+        var radius_factors = [0.7, 1.5, 1.5, 1.5];
+        var freq = [0, 3, 7, 10]
         var bufferLength;
 
         var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -198,11 +199,11 @@
                     var b = Math.floor(map[current_sound[i]].color[2] / 1.25);
                     let colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
 
-                    for (var j = 0; j < bufferLength - 1; j += 5) {
+                    for (var j = 0; j <= 4; j++) {
                         ctxv.beginPath();
                         ctxv.fillStyle = colorPoint;
                         ctxv.globalAlpha = 0.2;
-                        radius = dataArrays[i][j] / 16 * radius_factors[j / 5];
+                        radius = dataArrays[i][freq[j]] / 16 * radius_factors[j];
                         ctxv.arc(x, y, radius, 0, 2 * Math.PI);
                         ctxv.fill();
                     }
