@@ -139,6 +139,7 @@
         const download_record_btn = document.getElementById("download_record");
 
         createTracks(); // create all the tracks
+        initRadioBtn();
         draw();
 
         // Create all the tracks
@@ -161,7 +162,7 @@
             const record = audioCtx.createMediaElementSource(record_player);
             record.connect(gainNode);
 
-            for (i = 1; i < trackNb; i++) {
+            for (var i = 1; i < trackNb; i++) {
                 let track = new Audio();
                 const audio = audioCtx.createMediaElementSource(track);
                 var analyser = audioCtx.createAnalyser();
@@ -170,8 +171,9 @@
                 audio.connect(analyser).connect(gainNode);
 
                 track.addEventListener('pause', e => {
-                    var index_track = active_tracks.indexOf(i);
-                    active_tracks.splice(index_track, 1);
+                    var tracknb = tracks.indexOf(track);
+                    var index_track = active_tracks.indexOf(tracknb);
+                    var track_deleted = active_tracks.splice(index_track, 1);
                 });
 
                 tracks.push(track);
@@ -199,7 +201,7 @@
                     var b = Math.floor(map[current_sound[i]].color[2] / 1.25);
                     let colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
 
-                    for (var j = 0; j <= 4; j++) {
+                    for (var j = 0; j < 4; j++) {
                         ctxv.beginPath();
                         ctxv.fillStyle = colorPoint;
                         ctxv.globalAlpha = 0.2;
@@ -207,6 +209,25 @@
                         ctxv.arc(x, y, radius, 0, 2 * Math.PI);
                         ctxv.fill();
                     }
+                }
+            }
+        }
+
+        // On certain navigators radio button are not reseted
+        function initRadioBtn() {
+            const radioTriggerMode = document.querySelectorAll('input[name="trigger_mode"]');
+            for (const rb of radioTriggerMode) {
+                if (rb.checked) {
+                    trigger_mode = rb.value;
+                    break;
+                }
+            }
+
+            const radioPlayingMode = document.querySelectorAll('input[name="playing_mode"]');
+            for (const rb of radioPlayingMode) {
+                if (rb.checked) {
+                    playing_mode = rb.value;
+                    break;
                 }
             }
         }
@@ -266,13 +287,13 @@
 
         // Stop all sounds
         function stopAllSounds() {
-            for (i = 0; i < tracks.length; i++) {
+            for (var i = 0; i < tracks.length; i++) {
                 if (!tracks[i].paused) {
                     tracks[i].pause();
                 }
             }
             next_tracks = [];
-            for (i = 1; i < trackNb; i++) {
+            for (var i = 1; i < trackNb; i++) {
                 next_tracks.push(i);
             }
         }
