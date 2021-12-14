@@ -386,6 +386,8 @@
                 if (!play_record_disable) {
                     playRecord();
                 }
+            } else if (e.code == 'Escape') {
+                stopAllSounds();
             } else {
                 if (right_click) {
                     right_click = false;
