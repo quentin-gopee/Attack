@@ -59,6 +59,15 @@
             <p id="sound_name"></p>
         </div>
     </div>
+
+    <div class="range">
+        <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="150" step="10">
+        <label for="time bt 2 snds" id="time bt 2 snds id">Time bt 2 snds : 150</label>
+
+        <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="500" step="10">
+        <label for="time bt same snd" id="time bt same snd id">Time bt same snd : 500</label>
+    </div>
+
     <audio id="audio_player"></audio>
     <audio id="record_player"></audio>
 
@@ -93,8 +102,8 @@
         var grid = null; // store the grid
         initiateGrid(); // initiate the grid
 
-        const sleep = 150; // minimum time between 2 sounds triggering
-        const sleep_same = 500; // minimum time between 2 triggering of the same sound
+        var sleep = 150; // minimum time between 2 sounds triggering
+        var sleep_same = 500; // minimum time between 2 triggering of the same sound
         let last = Date.now(); // last time a sound was played
         let last_same = Date.now(); // last time the sound we want to replay has been played
         var last_played = null; // last sound that has been played
@@ -141,6 +150,22 @@
         createTracks(); // create all the tracks
         initRadioBtn();
         draw();
+
+        // Temp
+        const slide2 = document.getElementById("time bt 2 snds");
+        const slidesame = document.getElementById("time bt same snd");
+
+        slide2.addEventListener('input', e => {
+            sleep = slide2.value;
+            var text = document.getElementById("time bt 2 snds id");
+            text.innerHTML = "Time bt 2 snds : " + sleep;
+        });
+
+        slidesame.addEventListener('input', e => {
+            sleep_same = slidesame.value;
+            var text = document.getElementById("time bt same snd id");
+            text.innerHTML = "Time bt same snd : " + sleep_same;
+        });
 
         // Create all the tracks
         function createTracks() {
