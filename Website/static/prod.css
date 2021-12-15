@@ -262,3 +262,13 @@ pointer-events: all;
 .containerRadio{
   margin: 1rem 0rem;
 }
+
+.range{
+  position : absolute;
+  display: flex;
+  flex-direction: column;
+  width:10rem;
+  left:1rem;
+  bottom:1rem;
+  z-index : 3;
+}
