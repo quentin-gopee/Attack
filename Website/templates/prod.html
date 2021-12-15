@@ -61,11 +61,11 @@
     </div>
 
     <div class="range">
-        <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="150" step="10">
-        <label for="time bt 2 snds" id="time bt 2 snds id">Time bt 2 snds : 150</label>
+        <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="20" step="10">
+        <label for="time bt 2 snds" id="time bt 2 snds id">Time bt 2 snds : 20</label>
 
-        <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="500" step="10">
-        <label for="time bt same snd" id="time bt same snd id">Time bt same snd : 500</label>
+        <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="120" step="10">
+        <label for="time bt same snd" id="time bt same snd id">Time bt same snd : 120</label>
     </div>
 
     <audio id="audio_player"></audio>
@@ -102,8 +102,8 @@
         var grid = null; // store the grid
         initiateGrid(); // initiate the grid
 
-        var sleep = 150; // minimum time between 2 sounds triggering
-        var sleep_same = 500; // minimum time between 2 triggering of the same sound
+        var sleep = 20; // minimum time between 2 sounds triggering
+        var sleep_same = 120; // minimum time between 2 triggering of the same sound
         let last = Date.now(); // last time a sound was played
         let last_same = Date.now(); // last time the sound we want to replay has been played
         var last_played = null; // last sound that has been played
@@ -574,29 +574,57 @@
 
             // Trigger the closest sound if it is close enough
             else {
-                let now = Date.now()
-                if (now - last > sleep) {
-                    if (trigger_mode == 'hover') {
-                        xs = e.offsetX;
-                        ys = e.offsetY;
-                        var dist_min = 100;
-                        var i_min = null;
+                if (!e.shiftKey) {
+                    let now = Date.now()
+                    if (now - last > sleep) {
+                        if (trigger_mode == 'hover') {
+                            xs = e.offsetX;
+                            ys = e.offsetY;
+                            var dist_min = 100;
+                            var i_min = null;
 
-                        for (let i = 0; i < nbSounds; i++) {
-                            var x = positions[i][0];
-                            var y = positions[i][1];
-                            var dx = xs - x;
-                            var dy = ys - y;
-                            var dist = dx * dx + dy * dy;
-                            if (dist < dist_min) {
-                                dist_min = dist;
-                                i_min = i;
+                            for (let i = 0; i < nbSounds; i++) {
+                                var x = positions[i][0];
+                                var y = positions[i][1];
+                                var dx = xs - x;
+                                var dy = ys - y;
+                                var dist = dx * dx + dy * dy;
+                                if (dist < dist_min) {
+                                    dist_min = dist;
+                                    i_min = i;
+                                }
                             }
-                        }
 
-                        if (dist_min < pointRadius * pointRadius) {
-                            if (last_played == i_min) {
-                                if (now - last_same > sleep_same) {
+                            if (dist_min < pointRadius * pointRadius) {
+                                if (last_played == i_min) {
+                                    if (now - last_same > sleep_same) {
+                                        index = map[i_min].file;
+                                        var files = audio_files.files;
+                                        var file = URL.createObjectURL(files[index]);
+                                        if (playing_mode == "single") {
+                                            if (!audio_player.paused) {
+                                                var index_track = active_tracks.indexOf(0);
+                                                active_tracks.splice(index_track, 1);
+                                            }
+                                            audio_player.src = file;
+                                            current_sound[0] = i_min;
+                                            audio_player.play();
+                                            active_tracks.push(0);
+                                        } else {
+                                            var track_id = nextTrack();
+                                            tracks[track_id].src = file;
+                                            current_sound[track_id] = i_min;
+                                            tracks[track_id].play();
+                                            active_tracks.push(track_id);
+                                        }
+                                        last = Date.now();
+                                        last_same = Date.now();
+                                    }
+                                } else {
+                                    if (last_played != null) {
+                                        resetPoint(last_played);
+                                    }
+                                    drawCurrentPoint(i_min);
                                     index = map[i_min].file;
                                     var files = audio_files.files;
                                     var file = URL.createObjectURL(files[index]);
@@ -618,36 +646,10 @@
                                     }
                                     last = Date.now();
                                     last_same = Date.now();
+                                    last_played = i_min;
+                                    var text = document.getElementById("sound_name");
+                                    text.innerHTML = files[index].name;
                                 }
-                            } else {
-                                if (last_played != null) {
-                                    resetPoint(last_played);
-                                }
-                                drawCurrentPoint(i_min);
-                                index = map[i_min].file;
-                                var files = audio_files.files;
-                                var file = URL.createObjectURL(files[index]);
-                                if (playing_mode == "single") {
-                                    if (!audio_player.paused) {
-                                        var index_track = active_tracks.indexOf(0);
-                                        active_tracks.splice(index_track, 1);
-                                    }
-                                    audio_player.src = file;
-                                    current_sound[0] = i_min;
-                                    audio_player.play();
-                                    active_tracks.push(0);
-                                } else {
-                                    var track_id = nextTrack();
-                                    tracks[track_id].src = file;
-                                    current_sound[track_id] = i_min;
-                                    tracks[track_id].play();
-                                    active_tracks.push(track_id);
-                                }
-                                last = Date.now();
-                                last_same = Date.now();
-                                last_played = i_min;
-                                var text = document.getElementById("sound_name");
-                                text.innerHTML = files[index].name;
                             }
                         }
                     }
