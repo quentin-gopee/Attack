@@ -22,18 +22,6 @@
             <input class="button" type="button" value="Recenter" id="recenter" onclick="recenter()">
 
             <div class="containerRadio">
-                <p><b>Triggering mode</b></p>
-                <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="hover" name="trigger_mode" value="hover"
-                        onclick="hoverMode()" checked>
-                    <label class="radiobuttonlabel" for="hover">Hover</label>
-                </div>
-                <div class="RadioButtonContainer">
-                    <input class="radiobutton" type="radio" id="click" name="trigger_mode" value="click"
-                        onclick="clickMode()">
-                    <label class="radiobuttonlabel" for="click">Click</label>
-                </div>
-
                 <p><b>Playing mode</b></p>
                 <div class="RadioButtonContainer">
                     <input class="radiobutton" type="radio" id="single" name="playing_mode" value="single"
@@ -62,10 +50,16 @@
 
     <div class="range">
         <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="50" step="10">
-        <label for="time bt 2 snds" id="time bt 2 snds id">Time bt 2 snds : 50</label>
+        <label for="time bt 2 snds" id="time bt 2 snds label">Time bt 2 snds : 50</label>
 
         <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="150" step="10">
-        <label for="time bt same snd" id="time bt same snd id">Time bt same snd : 150</label>
+        <label for="time bt same snd" id="time bt same snd label">Time bt same snd : 150</label>
+
+        <input type="range" id="gain" name="gain" min="0" max="2" value="0.7" step="0.01">
+        <label for="gain" id="gain label">Gain : 0.7</label>
+
+        <input type="range" id="treshold" name="treshold" min="-100" max="0" value="-24" step="1">
+        <label for="treshold" id="treshold label">Compressor treshold : -24</label>
     </div>
 
     <div class="search">
@@ -164,18 +158,52 @@
         // Temp
         const slide2 = document.getElementById("time bt 2 snds");
         const slidesame = document.getElementById("time bt same snd");
+        const slidegain = document.getElementById("gain");
+        const slidetreshold = document.getElementById("treshold");
+
+        initSliders();
 
         slide2.addEventListener('input', e => {
             sleep = slide2.value;
-            var text = document.getElementById("time bt 2 snds id");
+            var text = document.getElementById("time bt 2 snds label");
             text.innerHTML = "Time bt 2 snds : " + sleep;
         });
 
         slidesame.addEventListener('input', e => {
             sleep_same = slidesame.value;
-            var text = document.getElementById("time bt same snd id");
+            var text = document.getElementById("time bt same snd label");
             text.innerHTML = "Time bt same snd : " + sleep_same;
         });
+
+        slidegain.addEventListener('input', e => {
+            gainNode.gain.value = slidegain.value;
+            var text = document.getElementById("gain label");
+            text.innerHTML = "Gain : " + slidegain.value;
+        });
+
+        slidetreshold.addEventListener('input', e => {
+            compressor.threshold.value = slidetreshold.value;
+            var text = document.getElementById("treshold label");
+            text.innerHTML = "Compressor treshold : " + slidetreshold.value;
+        });
+
+        function initSliders() {
+            sleep = slide2.value;
+            var text = document.getElementById("time bt 2 snds label");
+            text.innerHTML = "Time bt 2 snds : " + sleep;
+
+            sleep_same = slidesame.value;
+            text = document.getElementById("time bt same snd label");
+            text.innerHTML = "Time bt same snd : " + sleep_same;
+
+            gainNode.gain.value = slidegain.value;
+            text = document.getElementById("gain label");
+            text.innerHTML = "Gain : " + slidegain.value;
+
+            compressor.threshold.value = slidetreshold.value;
+            text = document.getElementById("treshold label");
+            text.innerHTML = "Compressor treshold : " + slidetreshold.value;
+        }
 
         // Create all the tracks
         function createTracks() {
@@ -250,14 +278,6 @@
 
         // On certain navigators radio button are not reseted
         function initRadioBtn() {
-            const radioTriggerMode = document.querySelectorAll('input[name="trigger_mode"]');
-            for (const rb of radioTriggerMode) {
-                if (rb.checked) {
-                    trigger_mode = rb.value;
-                    break;
-                }
-            }
-
             const radioPlayingMode = document.querySelectorAll('input[name="playing_mode"]');
             for (const rb of radioPlayingMode) {
                 if (rb.checked) {
@@ -412,16 +432,6 @@
             trigger_mode = 'hover';
         }
 
-        // Change to click mode
-        function clickMode() {
-            trigger_mode = 'click';
-        }
-
-        // Change to single mode
-        function singleMode() {
-            playing_mode = 'single';
-        }
-
         // Change to multiple mode
         function multipleMode() {
             playing_mode = 'multiple';
@@ -512,6 +522,8 @@
 
         // Listen to mouse down event 
         cv.addEventListener('mousedown', e => {
+            e.preventDefault();
+
             down = true;
             previous_xs = e.offsetX;
             previous_ys = e.offsetY;
@@ -548,57 +560,55 @@
             }
 
             // Trigger the closest sound if it is close enough
-            if (trigger_mode == 'click') {
-                xs = e.offsetX;
-                ys = e.offsetY;
-                var dist_min = 100;
-                var i_min = null;
+            xs = e.offsetX;
+            ys = e.offsetY;
+            var dist_min = 100;
+            var i_min = null;
 
-                xgrid = Math.floor(xs / (2 * pointRadius));
-                ygrid = Math.floor(ys / (2 * pointRadius));
-                gridSounds = grid[xgrid][ygrid];
+            xgrid = Math.floor(xs / (2 * pointRadius));
+            ygrid = Math.floor(ys / (2 * pointRadius));
+            gridSounds = grid[xgrid][ygrid];
 
-                gridSounds.forEach(i => {
-                    var x = positions[i][0];
-                    var y = positions[i][1];
-                    var dx = xs - x;
-                    var dy = ys - y;
-                    var dist = dx * dx + dy * dy;
-                    if (dist < dist_min) {
-                        dist_min = dist;
-                        i_min = i;
-                    }
-                });
-
-                if (dist_min < pointRadius * pointRadius) {
-                    if (last_played != null) {
-                        resetPoint(last_played);
-                    }
-                    drawCurrentPoint(i_min);
-                    index = map[i_min].file;
-                    var files = audio_files.files;
-                    var file = URL.createObjectURL(files[index]);
-                    if (playing_mode == "single") {
-                        if (!audio_player.paused) {
-                            var index_track = active_tracks.indexOf(0);
-                            active_tracks.splice(index_track, 1);
-                        }
-                        audio_player.src = file;
-                        current_sound[0] = i_min;
-                        audio_player.play();
-                        active_tracks.push(0);
-                    } else {
-                        var track_id = nextTrack();
-                        tracks[track_id].src = file;
-                        current_sound[track_id] = i_min;
-                        tracks[track_id].play();
-                        active_tracks.push(track_id);
-                    }
-                    last_played = i_min;
-                    var text = document.getElementById("sound_name");
-                    text.innerHTML = files[index].name;
-
+            gridSounds.forEach(i => {
+                var x = positions[i][0];
+                var y = positions[i][1];
+                var dx = xs - x;
+                var dy = ys - y;
+                var dist = dx * dx + dy * dy;
+                if (dist < dist_min) {
+                    dist_min = dist;
+                    i_min = i;
                 }
+            });
+
+            if (dist_min < pointRadius * pointRadius) {
+                if (last_played != null) {
+                    resetPoint(last_played);
+                }
+                drawCurrentPoint(i_min);
+                index = map[i_min].file;
+                var files = audio_files.files;
+                var file = URL.createObjectURL(files[index]);
+                if (playing_mode == "single") {
+                    if (!audio_player.paused) {
+                        var index_track = active_tracks.indexOf(0);
+                        active_tracks.splice(index_track, 1);
+                    }
+                    audio_player.src = file;
+                    current_sound[0] = i_min;
+                    audio_player.play();
+                    active_tracks.push(0);
+                } else {
+                    var track_id = nextTrack();
+                    tracks[track_id].src = file;
+                    current_sound[track_id] = i_min;
+                    tracks[track_id].play();
+                    active_tracks.push(track_id);
+                }
+                last_played = i_min;
+                var text = document.getElementById("sound_name");
+                text.innerHTML = files[index].name;
+
             }
         });
 
@@ -622,58 +632,30 @@
                 if (!e.shiftKey) {
                     let now = Date.now()
                     if (now - last > sleep) {
-                        if (trigger_mode == 'hover') {
-                            xs = e.offsetX;
-                            ys = e.offsetY;
-                            var dist_min = 100;
-                            var i_min = null;
+                        xs = e.offsetX;
+                        ys = e.offsetY;
+                        var dist_min = 100;
+                        var i_min = null;
 
-                            xgrid = Math.floor(xs / (2 * pointRadius));
-                            ygrid = Math.floor(ys / (2 * pointRadius));
-                            gridSounds = grid[xgrid][ygrid];
+                        xgrid = Math.floor(xs / (2 * pointRadius));
+                        ygrid = Math.floor(ys / (2 * pointRadius));
+                        gridSounds = grid[xgrid][ygrid];
 
-                            gridSounds.forEach(i => {
-                                var x = positions[i][0];
-                                var y = positions[i][1];
-                                var dx = xs - x;
-                                var dy = ys - y;
-                                var dist = dx * dx + dy * dy;
-                                if (dist < dist_min) {
-                                    dist_min = dist;
-                                    i_min = i;
-                                }
-                            });
+                        gridSounds.forEach(i => {
+                            var x = positions[i][0];
+                            var y = positions[i][1];
+                            var dx = xs - x;
+                            var dy = ys - y;
+                            var dist = dx * dx + dy * dy;
+                            if (dist < dist_min) {
+                                dist_min = dist;
+                                i_min = i;
+                            }
+                        });
 
-                            if (dist_min < pointRadius * pointRadius) {
-                                if (last_played == i_min) {
-                                    if (now - last_same > sleep_same) {
-                                        index = map[i_min].file;
-                                        var files = audio_files.files;
-                                        var file = URL.createObjectURL(files[index]);
-                                        if (playing_mode == "single") {
-                                            if (!audio_player.paused) {
-                                                var index_track = active_tracks.indexOf(0);
-                                                active_tracks.splice(index_track, 1);
-                                            }
-                                            audio_player.src = file;
-                                            current_sound[0] = i_min;
-                                            audio_player.play();
-                                            active_tracks.push(0);
-                                        } else {
-                                            var track_id = nextTrack();
-                                            tracks[track_id].src = file;
-                                            current_sound[track_id] = i_min;
-                                            tracks[track_id].play();
-                                            active_tracks.push(track_id);
-                                        }
-                                        last = Date.now();
-                                        last_same = Date.now();
-                                    }
-                                } else {
-                                    if (last_played != null) {
-                                        resetPoint(last_played);
-                                    }
-                                    drawCurrentPoint(i_min);
+                        if (dist_min < pointRadius * pointRadius) {
+                            if (last_played == i_min) {
+                                if (now - last_same > sleep_same) {
                                     index = map[i_min].file;
                                     var files = audio_files.files;
                                     var file = URL.createObjectURL(files[index]);
@@ -695,10 +677,36 @@
                                     }
                                     last = Date.now();
                                     last_same = Date.now();
-                                    last_played = i_min;
-                                    var text = document.getElementById("sound_name");
-                                    text.innerHTML = files[index].name;
                                 }
+                            } else {
+                                if (last_played != null) {
+                                    resetPoint(last_played);
+                                }
+                                drawCurrentPoint(i_min);
+                                index = map[i_min].file;
+                                var files = audio_files.files;
+                                var file = URL.createObjectURL(files[index]);
+                                if (playing_mode == "single") {
+                                    if (!audio_player.paused) {
+                                        var index_track = active_tracks.indexOf(0);
+                                        active_tracks.splice(index_track, 1);
+                                    }
+                                    audio_player.src = file;
+                                    current_sound[0] = i_min;
+                                    audio_player.play();
+                                    active_tracks.push(0);
+                                } else {
+                                    var track_id = nextTrack();
+                                    tracks[track_id].src = file;
+                                    current_sound[track_id] = i_min;
+                                    tracks[track_id].play();
+                                    active_tracks.push(track_id);
+                                }
+                                last = Date.now();
+                                last_same = Date.now();
+                                last_played = i_min;
+                                var text = document.getElementById("sound_name");
+                                text.innerHTML = files[index].name;
                             }
                         }
                     }
