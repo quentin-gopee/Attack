@@ -61,11 +61,17 @@
     </div>
 
     <div class="range">
-        <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="20" step="10">
-        <label for="time bt 2 snds" id="time bt 2 snds id">Time bt 2 snds : 20</label>
+        <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="50" step="10">
+        <label for="time bt 2 snds" id="time bt 2 snds id">Time bt 2 snds : 50</label>
 
-        <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="120" step="10">
-        <label for="time bt same snd" id="time bt same snd id">Time bt same snd : 120</label>
+        <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="150" step="10">
+        <label for="time bt same snd" id="time bt same snd id">Time bt same snd : 150</label>
+    </div>
+
+    <div class="search">
+        <input type=text" placeholder="Type a keyword" id="search_bar">
+        <button id="search" onclick="search()">Search</button>
+        <button id="delete filter" onclick="deleteFilter()">Delete filter</button>
     </div>
 
     <audio id="audio_player"></audio>
@@ -102,8 +108,8 @@
         var grid = null; // store the grid
         initiateGrid(); // initiate the grid
 
-        var sleep = 20; // minimum time between 2 sounds triggering
-        var sleep_same = 120; // minimum time between 2 triggering of the same sound
+        var sleep = 50; // minimum time between 2 sounds triggering
+        var sleep_same = 150; // minimum time between 2 triggering of the same sound
         let last = Date.now(); // last time a sound was played
         let last_same = Date.now(); // last time the sound we want to replay has been played
         var last_played = null; // last sound that has been played
@@ -146,6 +152,10 @@
         const record_btn = document.getElementById("record");
         const play_record_btn = document.getElementById("play_record");
         const download_record_btn = document.getElementById("download_record");
+
+        var filtered = [] // Output sounds of the search
+        var filter_active = false // store if the search filter is active
+        const search_bar = document.getElementById("search_bar");
 
         createTracks(); // create all the tracks
         initRadioBtn();
@@ -255,6 +265,37 @@
                     break;
                 }
             }
+        }
+
+        // Search
+        function search() {
+            var keyword = search_bar.value;
+            filtered = [];
+            for (var i = 0; i < nbSounds; i++) {
+                if (map[i].name.toLowerCase().includes(keyword)) {
+                    filtered.push(i);
+                }
+            }
+            console.log(filtered);
+            filter_active = true;
+            last_played = null;
+            upDateGrid();
+            ctx.clearRect(0, 0, c.width, c.height);
+            createMap();
+        }
+
+        search_bar.addEventListener('keydown', e => {
+            if (e.code == 'Enter') {
+                search();
+            }
+        });
+
+        // Delete filter
+        function deleteFilter() {
+            filter_active = false;
+            upDateGrid();
+            ctx.clearRect(0, 0, c.width, c.height);
+            createMap();
         }
 
         // Record
@@ -412,7 +453,11 @@
                     playRecord();
                 }
             } else if (e.code == 'Escape') {
-                stopAllSounds();
+                if (filter_active) {
+                    deleteFilter();
+                } else {
+                    stopAllSounds();
+                }
             } else {
                 if (right_click) {
                     right_click = false;
@@ -583,7 +628,11 @@
                             var dist_min = 100;
                             var i_min = null;
 
-                            for (let i = 0; i < nbSounds; i++) {
+                            xgrid = Math.floor(xs / (2 * pointRadius));
+                            ygrid = Math.floor(ys / (2 * pointRadius));
+                            gridSounds = grid[xgrid][ygrid];
+
+                            gridSounds.forEach(i => {
                                 var x = positions[i][0];
                                 var y = positions[i][1];
                                 var dx = xs - x;
@@ -593,7 +642,7 @@
                                     dist_min = dist;
                                     i_min = i;
                                 }
-                            }
+                            });
 
                             if (dist_min < pointRadius * pointRadius) {
                                 if (last_played == i_min) {
@@ -682,12 +731,36 @@
             }
         }
 
-        // Add a point on the canvas
+        // Add a point on the canvas when filter is not active
         function addPoint(i) {
             var r = Math.floor(map[i].color[0] / 1.25);
             var g = Math.floor(map[i].color[1] / 1.25);
             var b = Math.floor(map[i].color[2] / 1.25);
             let colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
+            var x = positions[i][0];
+            var y = positions[i][1];
+            ctx.beginPath();
+            ctx.fillStyle = colorPoint;
+            if (selected.includes(i)) {
+                ctx.strokeStyle = 'rgb(0,0,0)';
+            } else {
+                ctx.strokeStyle = background_color;
+            }
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Add a point on the canvas when filter is active
+        function addPointFilter(i) {
+            if (filtered.includes(i)) {
+                var r = Math.floor(map[i].color[0] / 1.25);
+                var g = Math.floor(map[i].color[1] / 1.25);
+                var b = Math.floor(map[i].color[2] / 1.25);
+                var colorPoint = 'rgb(' + r + ',' + g + ',' + b + ')';
+            } else {
+                var colorPoint = 'rgb(225,225,225)';
+            }
             var x = positions[i][0];
             var y = positions[i][1];
             ctx.beginPath();
@@ -775,62 +848,130 @@
                 }
             }
 
-            for (let i = 0; i < nbSounds; i++) {
-                var xgrid = Math.floor(positions[i][0] / (2 * pointRadius));
-                var ygrid = Math.floor(positions[i][1] / (2 * pointRadius));
-                if (xgrid >= 0 && ygrid >= 0 && xgrid < gridWidth && ygrid < gridHeight) {
-                    if (xgrid >= 1 && ygrid >= 1 && xgrid < gridWidth - 1 && ygrid < gridHeight - 1) {
-                        for (let x = xgrid - 1; x <= xgrid + 1; x++) {
-                            for (let y = ygrid - 1; y <= ygrid + 1; y++) {
-                                grid[x][y].push(i);
+            if (filter_active) {
+                for (let i = 0; i < nbSounds; i++) {
+                    if (filtered.includes(i)) {
+                        console.log(i);
+                        var xgrid = Math.floor(positions[i][0] / (2 * pointRadius));
+                        var ygrid = Math.floor(positions[i][1] / (2 * pointRadius));
+                        if (xgrid >= 0 && ygrid >= 0 && xgrid < gridWidth && ygrid < gridHeight) {
+                            if (xgrid >= 1 && ygrid >= 1 && xgrid < gridWidth - 1 && ygrid < gridHeight - 1) {
+                                for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                                    for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                        grid[x][y].push(i);
+                                    }
+                                }
+                            } else if (xgrid == 0 && ygrid >= 1 && ygrid < gridHeight - 1) {
+                                for (let x = xgrid; x <= xgrid + 1; x++) {
+                                    for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid == gridWidth - 1 && ygrid >= 1 && ygrid < gridHeight - 1) {
+                                for (let x = xgrid - 1; x <= xgrid; x++) {
+                                    for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == 0) {
+                                for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                                    for (let y = ygrid; y <= ygrid + 1; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == gridHeight - 1) {
+                                for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                                    for (let y = ygrid - 1; y <= ygrid; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid == 0 && ygrid == 0) {
+                                for (let x = xgrid; x <= xgrid + 1; x++) {
+                                    for (let y = ygrid; y <= ygrid + 1; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid == gridWidth - 1 && ygrid == 0) {
+                                for (let x = xgrid - 1; x <= xgrid; x++) {
+                                    for (let y = ygrid; y <= ygrid + 1; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid == 0 && ygrid == gridHeight - 1) {
+                                for (let x = xgrid; x <= xgrid + 1; x++) {
+                                    for (let y = ygrid - 1; y <= ygrid; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
+                            } else if (xgrid == gridWidth - 1 && ygrid == gridHeight - 1) {
+                                for (let x = xgrid - 1; x <= xgrid; x++) {
+                                    for (let y = ygrid - 1; y <= ygrid; y++) {
+                                        grid[x][y].push(i)
+                                    }
+                                }
                             }
                         }
-                    } else if (xgrid == 0 && ygrid >= 1 && ygrid < gridHeight - 1) {
-                        for (let x = xgrid; x <= xgrid + 1; x++) {
-                            for (let y = ygrid - 1; y <= ygrid + 1; y++) {
-                                grid[x][y].push(i)
+                    }
+                }
+
+            } else {
+                for (let i = 0; i < nbSounds; i++) {
+                    var xgrid = Math.floor(positions[i][0] / (2 * pointRadius));
+                    var ygrid = Math.floor(positions[i][1] / (2 * pointRadius));
+                    if (xgrid >= 0 && ygrid >= 0 && xgrid < gridWidth && ygrid < gridHeight) {
+                        if (xgrid >= 1 && ygrid >= 1 && xgrid < gridWidth - 1 && ygrid < gridHeight - 1) {
+                            for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                                for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                    grid[x][y].push(i);
+                                }
                             }
-                        }
-                    } else if (xgrid == gridWidth - 1 && ygrid >= 1 && ygrid < gridHeight - 1) {
-                        for (let x = xgrid - 1; x <= xgrid; x++) {
-                            for (let y = ygrid - 1; y <= ygrid + 1; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid == 0 && ygrid >= 1 && ygrid < gridHeight - 1) {
+                            for (let x = xgrid; x <= xgrid + 1; x++) {
+                                for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
-                        }
-                    } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == 0) {
-                        for (let x = xgrid - 1; x <= xgrid + 1; x++) {
-                            for (let y = ygrid; y <= ygrid + 1; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid == gridWidth - 1 && ygrid >= 1 && ygrid < gridHeight - 1) {
+                            for (let x = xgrid - 1; x <= xgrid; x++) {
+                                for (let y = ygrid - 1; y <= ygrid + 1; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
-                        }
-                    } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == gridHeight - 1) {
-                        for (let x = xgrid - 1; x <= xgrid + 1; x++) {
-                            for (let y = ygrid - 1; y <= ygrid; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == 0) {
+                            for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                                for (let y = ygrid; y <= ygrid + 1; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
-                        }
-                    } else if (xgrid == 0 && ygrid == 0) {
-                        for (let x = xgrid; x <= xgrid + 1; x++) {
-                            for (let y = ygrid; y <= ygrid + 1; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid >= 1 && xgrid < gridWidth - 1 && ygrid == gridHeight - 1) {
+                            for (let x = xgrid - 1; x <= xgrid + 1; x++) {
+                                for (let y = ygrid - 1; y <= ygrid; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
-                        }
-                    } else if (xgrid == gridWidth - 1 && ygrid == 0) {
-                        for (let x = xgrid - 1; x <= xgrid; x++) {
-                            for (let y = ygrid; y <= ygrid + 1; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid == 0 && ygrid == 0) {
+                            for (let x = xgrid; x <= xgrid + 1; x++) {
+                                for (let y = ygrid; y <= ygrid + 1; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
-                        }
-                    } else if (xgrid == 0 && ygrid == gridHeight - 1) {
-                        for (let x = xgrid; x <= xgrid + 1; x++) {
-                            for (let y = ygrid - 1; y <= ygrid; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid == gridWidth - 1 && ygrid == 0) {
+                            for (let x = xgrid - 1; x <= xgrid; x++) {
+                                for (let y = ygrid; y <= ygrid + 1; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
-                        }
-                    } else if (xgrid == gridWidth - 1 && ygrid == gridHeight - 1) {
-                        for (let x = xgrid - 1; x <= xgrid; x++) {
-                            for (let y = ygrid - 1; y <= ygrid; y++) {
-                                grid[x][y].push(i)
+                        } else if (xgrid == 0 && ygrid == gridHeight - 1) {
+                            for (let x = xgrid; x <= xgrid + 1; x++) {
+                                for (let y = ygrid - 1; y <= ygrid; y++) {
+                                    grid[x][y].push(i)
+                                }
+                            }
+                        } else if (xgrid == gridWidth - 1 && ygrid == gridHeight - 1) {
+                            for (let x = xgrid - 1; x <= xgrid; x++) {
+                                for (let y = ygrid - 1; y <= ygrid; y++) {
+                                    grid[x][y].push(i)
+                                }
                             }
                         }
                     }
@@ -840,8 +981,14 @@
 
         // Draw the map on the canvas
         function createMap() {
-            for (let i = 0; i < nbSounds; i++) {
-                addPoint(i)
+            if (filter_active) {
+                for (let i = 0; i < nbSounds; i++) {
+                    addPointFilter(i);
+                }
+            } else {
+                for (let i = 0; i < nbSounds; i++) {
+                    addPoint(i);
+                }
             }
         }
 
