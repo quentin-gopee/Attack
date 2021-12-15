@@ -9,9 +9,9 @@ app.config["DEBUG"] = True
 def file_summer_page():
     files = request.files.getlist("files[]")
     print('files : ', files)
-    feature_vectors, out_files = mfcc_files(files)
+    feature_vectors, out_files, full_names = mfcc_files(files)
     colors = vector_colors(feature_vectors)
-    sound_map = create_map(out_files, feature_vectors, colors)
+    sound_map = create_map(out_files, feature_vectors, colors, full_names)
     return jsonify({'sound_map': sound_map})
 
 

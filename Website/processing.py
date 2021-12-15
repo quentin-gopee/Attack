@@ -43,6 +43,7 @@ def mfcc_files(files):
 
     feature_vectors = []
     out_files = []
+    full_names = []
     i = 0
     j = 0
 
@@ -64,13 +65,14 @@ def mfcc_files(files):
                     continue
                 feature_vectors.append(feat)
                 out_files.append(j)
+                full_names.append(file.filename)
             except:
                 print("error loading %s" % file.filename)
         j += 1
 
     print("calculated %d feature vectors\n" % len(feature_vectors))
 
-    return feature_vectors, out_files
+    return feature_vectors, out_files, full_names
 
 
 def vector_colors(feature_vectors):
@@ -99,7 +101,7 @@ def vector_colors(feature_vectors):
     return colors
 
 
-def create_map(out_files, feature_vectors, colors):
+def create_map(out_files, feature_vectors, colors, full_names):
     """Crée un fichier JSON map_name.json contentant les coordonnées et la couleur de chaque son représenté par feature_vectors dans la map"""
 
     model = TSNE(n_components=2, learning_rate=150, perplexity=30,
@@ -111,8 +113,8 @@ def create_map(out_files, feature_vectors, colors):
     x_norm = (x_axis - np.min(x_axis)) / (np.max(x_axis) - np.min(x_axis))
     y_norm = (y_axis - np.min(y_axis)) / (np.max(y_axis) - np.min(y_axis))
 
-    data = [{"file": f, "point": [x, y], "color": c} for f, x, y, c in zip(
-        out_files, x_norm.astype(float), y_norm.astype(float), colors)]
+    data = [{"file": f, "point": [x, y], "color": c, "name": n} for f, x, y, c, n in zip(
+        out_files, x_norm.astype(float), y_norm.astype(float), colors, full_names)]
 
     data = dumps(data)
 
