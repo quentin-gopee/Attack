@@ -52,9 +52,6 @@
         <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="50" step="10">
         <label for="time bt 2 snds" id="time bt 2 snds label">Time bt 2 snds : 50</label>
 
-        <input type="range" id="time bt same snd" name="time bt same snd" min="0" max="500" value="150" step="10">
-        <label for="time bt same snd" id="time bt same snd label">Time bt same snd : 150</label>
-
         <input type="range" id="gain" name="gain" min="0" max="2" value="0.7" step="0.01">
         <label for="gain" id="gain label">Gain : 0.7</label>
 
@@ -103,10 +100,10 @@
         initiateGrid(); // initiate the grid
 
         var sleep = 50; // minimum time between 2 sounds triggering
-        var sleep_same = 150; // minimum time between 2 triggering of the same sound
         let last = Date.now(); // last time a sound was played
         let last_same = Date.now(); // last time the sound we want to replay has been played
         var last_played = null; // last sound that has been played
+        var inpoint = false; // true if the mouse is on a point
 
         var down = false; // store the state of the mouse button
         var previous_xs = null; // store the last position of the mouse
@@ -157,7 +154,6 @@
 
         // Temp
         const slide2 = document.getElementById("time bt 2 snds");
-        const slidesame = document.getElementById("time bt same snd");
         const slidegain = document.getElementById("gain");
         const slidetreshold = document.getElementById("treshold");
 
@@ -167,12 +163,6 @@
             sleep = slide2.value;
             var text = document.getElementById("time bt 2 snds label");
             text.innerHTML = "Time bt 2 snds : " + sleep;
-        });
-
-        slidesame.addEventListener('input', e => {
-            sleep_same = slidesame.value;
-            var text = document.getElementById("time bt same snd label");
-            text.innerHTML = "Time bt same snd : " + sleep_same;
         });
 
         slidegain.addEventListener('input', e => {
@@ -191,10 +181,6 @@
             sleep = slide2.value;
             var text = document.getElementById("time bt 2 snds label");
             text.innerHTML = "Time bt 2 snds : " + sleep;
-
-            sleep_same = slidesame.value;
-            text = document.getElementById("time bt same snd label");
-            text.innerHTML = "Time bt same snd : " + sleep_same;
 
             gainNode.gain.value = slidegain.value;
             text = document.getElementById("gain label");
@@ -653,9 +639,11 @@
                             }
                         });
 
-                        if (dist_min < pointRadius * pointRadius) {
+                        if (dist_min > pointRadius * pointRadius) {
+                            inpoint = false;
+                        } else {
                             if (last_played == i_min) {
-                                if (now - last_same > sleep_same) {
+                                if (!inpoint) {
                                     index = map[i_min].file;
                                     var files = audio_files.files;
                                     var file = URL.createObjectURL(files[index]);
@@ -676,9 +664,10 @@
                                         active_tracks.push(track_id);
                                     }
                                     last = Date.now();
-                                    last_same = Date.now();
+                                    inpoint = true;
                                 }
-                            } else {
+                            }
+                            if (last_played != i_min) {
                                 if (last_played != null) {
                                     resetPoint(last_played);
                                 }
@@ -703,11 +692,12 @@
                                     active_tracks.push(track_id);
                                 }
                                 last = Date.now();
-                                last_same = Date.now();
                                 last_played = i_min;
+                                inpoint = true;
                                 var text = document.getElementById("sound_name");
                                 text.innerHTML = files[index].name;
                             }
+
                         }
                     }
                 }
