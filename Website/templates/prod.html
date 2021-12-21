@@ -444,32 +444,32 @@
         }
 
         document.addEventListener('keydown', e => {
-            // if (e.shiftKey && e.code == 'KeyR') {
-            //     record();
-            // } else if (e.code == 'Space') {
-            //     e.preventDefault();
-            //     if (!play_record_disable) {
-            //         playRecord();
-            //     }
-            // } else if (e.code == 'Escape') {
-            //     if (filter_active) {
-            //         deleteFilter();
-            //     } else {
-            //         stopAllSounds();
-            //     }
-            // } else {
-            if (right_click) {
-                right_click = false;
-                sound_keys[e.code] = next_key_sound;
-                keys_state[e.code] = 'up';
-            }
-
-            if (e.code in sound_keys) {
-                if (keys_state[e.code] == 'up') {
-                    next_sounds.push(e.code);
-                    keys_state[e.code] = 'down';
+            if (e.shiftKey && e.code == 'KeyR') {
+                record();
+            } else if (e.code == 'Space') {
+                e.preventDefault();
+                if (!play_record_disable) {
+                    playRecord();
                 }
-                // }
+            } else if (e.code == 'Escape') {
+                if (filter_active) {
+                    deleteFilter();
+                } else {
+                    stopAllSounds();
+                }
+            } else {
+                if (right_click) {
+                    right_click = false;
+                    sound_keys[e.code] = next_key_sound;
+                    keys_state[e.code] = 'up';
+                }
+
+                if (e.code in sound_keys) {
+                    if (keys_state[e.code] == 'up') {
+                        next_sounds.push(e.code);
+                        keys_state[e.code] = 'down';
+                    }
+                }
             }
         });
 
@@ -1003,6 +1003,11 @@
         function createMap() {
             if (filter_active) {
                 for (let i = 0; i < nbSounds; i++) {
+                    if (!filtered.includes(i)) {
+                        addPointFilter(i);
+                    }
+                }
+                for (const i of filtered) {
                     addPointFilter(i);
                 }
             } else {
