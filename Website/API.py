@@ -25,9 +25,9 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/info', methods=['GET'])
+@app.route('/help', methods=['GET'])
 def info():
-    return render_template('info.html')
+    return render_template('help.html')
 
 
 if __name__ == "__main__":

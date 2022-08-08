@@ -194,7 +194,7 @@ header{
 
 .logo{
   font-size: 1.6rem ;
-  font-weight: 400;
+  font-weight: 600;
   margin-bottom: 0rem;
   pointer-events: all;
 }
@@ -206,8 +206,9 @@ header{
   margin-top: 0rem;
 }
 
-/*---------- main ---------------*/
 
+
+/*---------- main ---------------*/
 
 .interface{
   position:absolute;
@@ -232,9 +233,9 @@ header{
   display: block;
   pointer-events: all;
 }
+
   
 /*------------ interface --------------*/
-
 
 .subinterface{
   display: flex;
@@ -278,4 +279,37 @@ pointer-events: all;
   margin: auto;
   width: 21rem;
   z-index: 3;
+}
+
+
+/*------------ nav --------------*/
+
+nav{
+  display:block;
+  margin:1rem;
+  z-index: 2;
+}
+
+ul{
+  list-style: none;
+  position: absolute;
+  bottom: 1rem;
+  padding:0rem;
+  line-height: 1.75rem;
+  z-index: 2;
+}
+
+a{
+  color: var(--faded-black);
+  text-decoration: none;
+}
+
+a.nav:visited{
+  color: var(--faded-black) ;
+}
+
+a.nav:hover{
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--faded-black);
 }

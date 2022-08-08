@@ -192,7 +192,7 @@
   
   .logo{
     font-size: 1.6rem ;
-    font-weight: 400;
+    font-weight: 600;
     margin-bottom: 0rem;
   }
   
@@ -220,7 +220,7 @@
   
   ul{
     list-style: none;
-    margin:0rem;
+    bottom: 1rem;
     padding:0rem;
     line-height: 1.75rem;
   }

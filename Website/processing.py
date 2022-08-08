@@ -72,7 +72,7 @@ def mfcc_files(files):
 
     print("calculated %d feature vectors\n" % len(feature_vectors))
 
-    return feature_vectors, out_files, full_names
+    return np.array(feature_vectors), out_files, full_names
 
 
 def vector_colors(feature_vectors):

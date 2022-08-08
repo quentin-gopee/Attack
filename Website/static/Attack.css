@@ -193,7 +193,7 @@ header{
 
 .logo{
   font-size: 1.6rem ;
-  font-weight: 400;
+  font-weight: 600;
   margin-bottom: 0rem;
 }
 
@@ -217,7 +217,7 @@ header{
   font-size: calc(6rem + 3vw);
   font-style: bold;
   margin:0rem;
-  margin-left:-2rem;  
+  margin-left:-4rem;  
 }
 
 .catch{
@@ -238,7 +238,8 @@ margin-left:0rem;
   border-radius: 3px;
   padding:1rem 1.5rem;
   color: var(--text-grey);
-  width:8rem;
+  font-weight: 600;
+  width:10rem;
   transition: background-color ease-in;
 }
 
@@ -248,7 +249,7 @@ margin-left:0rem;
   border-radius: 3px;
   padding:1rem 1.5rem;
   color: var(--text-grey) ;
-  width:8rem;
+  width:10rem;
 }
 
 /*------------ nav --------------*/
@@ -261,7 +262,7 @@ nav{
 
 ul{
   list-style: none;
-  margin:0rem;
+  bottom: 1rem;
   padding:0rem;
   line-height: 1.75rem;
 }
