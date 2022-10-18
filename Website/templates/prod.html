@@ -48,7 +48,7 @@
         </div>
     </div>
 
-    <div class="range">
+    <!-- <div class="range">
         <input type="range" id="time bt 2 snds" name="time bt 2 snds" min="0" max="500" value="50" step="10">
         <label for="time bt 2 snds" id="time bt 2 snds label">Time bt 2 snds : 50</label>
 
@@ -57,7 +57,7 @@
 
         <input type="range" id="treshold" name="treshold" min="-100" max="0" value="-24" step="1">
         <label for="treshold" id="treshold label">Compressor treshold : -24</label>
-    </div>
+    </div> -->
 
     <div class="search">
         <input type=text" placeholder="Type a keyword" id="search_bar">
@@ -166,44 +166,44 @@
         draw();
         keyPlay();
 
-        // Temp
-        const slide2 = document.getElementById("time bt 2 snds");
-        const slidegain = document.getElementById("gain");
-        const slidetreshold = document.getElementById("treshold");
+        // // Temp
+        // const slide2 = document.getElementById("time bt 2 snds");
+        // const slidegain = document.getElementById("gain");
+        // const slidetreshold = document.getElementById("treshold");
 
-        initSliders();
+        // initSliders();
 
-        slide2.addEventListener('input', e => {
-            sleep = slide2.value;
-            var text = document.getElementById("time bt 2 snds label");
-            text.innerHTML = "Time bt 2 snds : " + sleep;
-        });
+        // slide2.addEventListener('input', e => {
+        //     sleep = slide2.value;
+        //     var text = document.getElementById("time bt 2 snds label");
+        //     text.innerHTML = "Time bt 2 snds : " + sleep;
+        // });
 
-        slidegain.addEventListener('input', e => {
-            gainNode.gain.value = slidegain.value;
-            var text = document.getElementById("gain label");
-            text.innerHTML = "Gain : " + slidegain.value;
-        });
+        // slidegain.addEventListener('input', e => {
+        //     gainNode.gain.value = slidegain.value;
+        //     var text = document.getElementById("gain label");
+        //     text.innerHTML = "Gain : " + slidegain.value;
+        // });
 
-        slidetreshold.addEventListener('input', e => {
-            compressor.threshold.value = slidetreshold.value;
-            var text = document.getElementById("treshold label");
-            text.innerHTML = "Compressor treshold : " + slidetreshold.value;
-        });
+        // slidetreshold.addEventListener('input', e => {
+        //     compressor.threshold.value = slidetreshold.value;
+        //     var text = document.getElementById("treshold label");
+        //     text.innerHTML = "Compressor treshold : " + slidetreshold.value;
+        // });
 
-        function initSliders() {
-            sleep = slide2.value;
-            var text = document.getElementById("time bt 2 snds label");
-            text.innerHTML = "Time bt 2 snds : " + sleep;
+        // function initSliders() {
+        //     sleep = slide2.value;
+        //     var text = document.getElementById("time bt 2 snds label");
+        //     text.innerHTML = "Time bt 2 snds : " + sleep;
 
-            gainNode.gain.value = slidegain.value;
-            text = document.getElementById("gain label");
-            text.innerHTML = "Gain : " + slidegain.value;
+        //     gainNode.gain.value = slidegain.value;
+        //     text = document.getElementById("gain label");
+        //     text.innerHTML = "Gain : " + slidegain.value;
 
-            compressor.threshold.value = slidetreshold.value;
-            text = document.getElementById("treshold label");
-            text.innerHTML = "Compressor treshold : " + slidetreshold.value;
-        }
+        //     compressor.threshold.value = slidetreshold.value;
+        //     text = document.getElementById("treshold label");
+        //     text.innerHTML = "Compressor treshold : " + slidetreshold.value;
+        // }
 
         // Create all the tracks
         function createTracks() {
