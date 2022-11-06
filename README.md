@@ -43,7 +43,7 @@ http://localhost:5000/ is the main page of the website. You can try the prototyp
 
 ### Create a map
 
-When you arrive the prod page, you will see some buttons and an empty background. It is normal, you haven't created any map yet! To do so, click on the browse button (at the top left) and select a sample pack. If you don't have any sample pack on your computer but still wanna try the prototype, you can download [this one](https://www.dropbox.com/s/ibfhkf3wf9lnt7a/Wave%20Point%20-%20House%20Essentials%20Vol.%201.zip?dl=0).
+When you arrive on the prod page, you will see some buttons and an empty background. It is normal, you haven't created any map yet! To do so, click on the browse button (at the top left) and select a sample pack. If you don't have any sample pack on your computer but still want to try the prototype, you can download [this one](https://www.dropbox.com/s/ibfhkf3wf9lnt7a/Wave%20Point%20-%20House%20Essentials%20Vol.%201.zip?dl=0).
 
 Once you've uploaded the files, click on **Compute map**. The page will display "Computing..." under the button while it's computing the map. This can take some time (arround 20 seconds for 500 samples), but unfortunatly there is no feedback displayed on the page. If you want to know what is happening, you can check your terminal, you should have the information about the computation displayed there.
 
