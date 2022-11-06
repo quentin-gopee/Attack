@@ -62,9 +62,9 @@ Once the computation is done, your map is displayed on the screen! You can alrea
 - Zoom into the map by scrolling and move it by clicking and moving your mouse at the same time. If you get lost, you can click on the **Recenter** button to reset the position of the map.
 - There are two different modes: **Single** and **Multiple**. In single mode, only on sound can be triggered at a time, while in multiple mode you can trigger as many sounds as you want at the same time.
 - The multiple mode is very cool but can be a bit dangerous for your ears, that's why there is a **Stop all sounds** button, that stop all the sounds playing. You can also do this by hitting the ```Esc``` key on your keyboard.
-- You can record what is happening on the page by clicking on **Record** or doing ```Shift``` + ```R```. Click again the button (that is now **Stop recording**) do ```Shift``` + ```R``` again.
+- You can record what is happening on the page by clicking on **Record** or doing ```Shift``` + ```R```. Click again the button (that is now **Stop recording**) or do ```Shift``` + ```R``` again.
 - To play the record you've done, click on **Play** or hit the ```Space bar```. Clik on **Pause** or on the ```Space bar``` to stop it.
-- To download the record you've done, press **Dowload record**.
+- To download the record you've done, press **Download record**.
 - You can assign a sound to a key of your keyboard by right clicking on a point and then hitting the key to which you want to assign it. The next time you will press this key, it will trigger the sound you assigned (however this doesn't work very well, there is some latency).
 - There is a searchbar at the top of the page. Type in what you want, and then click on search or press ```Enter``` to apply a filter on the map. All the points will become grey and stop being interactive, except the sounds containing what you typed in the search bar in their names. To delete the filter, just press **Delete filter**.
 - To create a new map, upload other samples by clicking on **Browse** and hit again the **Compute Map** button
