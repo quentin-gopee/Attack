@@ -43,7 +43,7 @@ http://localhost:5000/ is the main page of the website. You can try the prototyp
 
 ### Create a map
 
-When you arrive on the prod page, you will see some buttons and an empty background. It is normal, you haven't created any map yet! To do so, click on the browse button (at the top left) and select a sample pack. If you don't have any sample pack on your computer but still want to try the prototype, you can download [this one](https://www.dropbox.com/s/ibfhkf3wf9lnt7a/Wave%20Point%20-%20House%20Essentials%20Vol.%201.zip?dl=0).
+When you arrive on the prod page, you will see some buttons and an empty background. It is normal, you haven't created any map yet! To do so, click on the **Browse** button (at the top left) and select a sample pack. If you don't have any sample pack on your computer but still want to try the prototype, you can download [this one](https://www.dropbox.com/s/ibfhkf3wf9lnt7a/Wave%20Point%20-%20House%20Essentials%20Vol.%201.zip?dl=0).
 
 Once you've uploaded the files, click on **Compute map**. The page will display "Computing..." under the button while it's computing the map. This can take some time (arround 20 seconds for 500 samples), but unfortunatly there is no feedback displayed on the page. If you want to know what is happening, you can check your terminal, you should have the information about the computation displayed there.
 
@@ -65,9 +65,9 @@ Once the computation is done, your map is displayed on the screen! You can alrea
 - You can record what is happening on the page by clicking on **Record** or doing ```Shift``` + ```R```. Click again the button (that is now **Stop recording**) do ```Shift``` + ```R``` again.
 - To play the record you've done, click on **Play** or hit the ```Space bar```. Clik on **Pause** or on the ```Space bar``` to stop it.
 - To download the record you've done, press **Dowload record**.
-- You can assign a sound to a key of your keyboard by right clicking on a point and then hitting the key you want to which you want to assign it. The next time you will press this key, it will trigger the sound you assigned (however this doesn't work very well, there is some latency).
-- There is a searchbar at the top of the page. Type in what you want to find, and then click on search or press ```Enter``` to apply a filter on the map. All the points will become grey and stop being interactive, except the sounds containing what you typed in the search bar in their names. To delete the filter, just press **Delete filter**.
-- To create a new map, upload pther samples by clicking on browse and hit again the **Compute Map** button
+- You can assign a sound to a key of your keyboard by right clicking on a point and then hitting the key to which you want to assign it. The next time you will press this key, it will trigger the sound you assigned (however this doesn't work very well, there is some latency).
+- There is a searchbar at the top of the page. Type in what you want, and then click on search or press ```Enter``` to apply a filter on the map. All the points will become grey and stop being interactive, except the sounds containing what you typed in the search bar in their names. To delete the filter, just press **Delete filter**.
+- To create a new map, upload other samples by clicking on **Browse** and hit again the **Compute Map** button
 
 ### Enjoy
 
