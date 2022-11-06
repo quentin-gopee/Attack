@@ -1,7 +1,7 @@
 # Attac:k!
 ## Stop Scrolling, Start Playing.
 
-**Attac:k!** is a project whose objective is to help musicians to organize and explore their sample packs. The idea is to propose an alternative to the traditional files explorers that do not suit the exploration of sample packs. How do we do that? By creating maps! Those maps sort sounds by similarity and allow musicians to naviguate flowlessly and intuitively in their sample packs *(for more information on the project please refer to the pitch deck above)*.
+**Attac:k!** is a project whose objective is to help musicians to organize and explore their sample packs. The idea is to propose an alternative to the traditional files explorers that do not suit the exploration of sample packs. How do we do that? By creating maps! Those maps sort sounds by similarity and allow musicians to naviguate flowlessly and intuitively in their sample packs *(for more information on the project please refer to the **Pitch Deck** and to **How it works**)*.
 
 | ![Map example](images/map.png) | 
 |:--:| 
