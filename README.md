@@ -19,7 +19,7 @@ Else, here is a step by step tutorial to download and install the prototype:
 
 - Download the code by clicking on 'Code' then 'Download ZIP' at the top of this webpage
 - Unzip the files where you want
-- The app is running on python3.9 and you probably have a newer version of python installed, so to run it safely you can use miniconda (in the terminal, install with '''wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh''' and '''bash Miniconda3-latest-Linux-x86_64.sh''' then create the environment with '''conda create -n py39 python=3.9''' and activate with '''conda activate py39''')
+- The app is running on python3.9 and you probably have a newer version of python installed, so to run it safely you can use miniconda (in the terminal, install with ```wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh``` and ```bash Miniconda3-latest-Linux-x86_64.sh``` then create the environment with ```conda create -n py39 python=3.9``` and activate with ```conda activate py39```)
 - Now you can go to the folder of the prototype (if you don't know how to this, check how to use the ```cd``` command)
 - run the command ```pip install -r requirements.txt``` to install all the necessary packages
 
